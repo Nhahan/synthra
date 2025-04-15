@@ -160,11 +160,19 @@
     "description": "言語セレクタラベル"
   },
   "autoSummaryToggle": {
-    "message": "自動要約",
+    "message": "要約機能を有効にする",
     "description": "自動要約トグルラベル"
   },
   "autoSummaryDesc": {
     "message": "有効にすると、YouTubeの動画ページにアクセスする際に自動的に要約を生成します。",
     "description": "自動要約機能の説明"
+  },
+  "statusRetrying": {
+    "message": "再試行中",
+    "description": "エンジン初期化再試行ステータス"
+  },
+  "statusDescRetrying": {
+    "message": "エンジンの初期化を再試行しています...",
+    "description": "エンジン初期化再試行ステータスの説明"
   }
 }

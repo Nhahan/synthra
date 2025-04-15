@@ -160,11 +160,19 @@
     "description": "Language selector label"
   },
   "autoSummaryToggle": {
-    "message": "Auto Summary",
+    "message": "Enable Summary Feature",
     "description": "Auto summary toggle label"
   },
   "autoSummaryDesc": {
     "message": "When enabled, automatically generates summaries when accessing YouTube video pages.",
     "description": "Auto summary feature description"
+  },
+  "statusRetrying": {
+    "message": "Retrying",
+    "description": "Engine initialization retry status"
+  },
+  "statusDescRetrying": {
+    "message": "Retrying engine initialization...",
+    "description": "Engine initialization retry status description"
   }
 }

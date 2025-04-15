@@ -160,11 +160,19 @@
     "description": "언어 선택기 라벨"
   },
   "autoSummaryToggle": {
-    "message": "자동 요약",
+    "message": "요약 기능 활성화",
     "description": "자동 요약 토글 라벨"
   },
   "autoSummaryDesc": {
     "message": "켜면 유튜브 동영상 페이지에 접속 시 자동으로 요약을 생성합니다.",
     "description": "자동 요약 기능 설명"
+  },
+  "statusRetrying": {
+    "message": "재시도 중",
+    "description": "엔진 초기화 재시도 상태"
+  },
+  "statusDescRetrying": {
+    "message": "엔진 초기화를 다시 시도하는 중...",
+    "description": "엔진 초기화 재시도 상태 설명"
   }
 }

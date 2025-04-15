@@ -70,7 +70,28 @@ Synthra는 확장 프로그램을 설치할 때 AI 모델을 다운로드합니�
 
 ### 왜 팝업을 열 때마다 모델 로딩이 표시되나요?
 
-Synthra는 Chrome의 Manifest V3 규격에 따라 서비스 워커에서 AI 모델을 실행합니다. 브라우저 자원을 효율적으로 사용하기 위해, 서비스 워커는 일정 시간 사용하지 않으면 자동으로 중지될 수 있습니다. 팝업을 다시 열면 서비스 워커가 재시작되면서 모델 로딩 과정이 다시 필요할 수 있습니다. 이는 개인 정보 보호를 위해 모든 처리를 로컬에서 수행하는 방식의 기술적 특성입니다. 저희는 로딩 시간을 최소화하기 위해 노력하고 있습니다.
+Synthra는 Chrome의 Manifest V3 규격에 따라 서비스 워커에서 AI 모델을 실행합니다. 브라우저 자원을 효율적으로 사용하기 위해, 서비스 워커는 일정 시간 사용하지 않으면 자동으로 중지될 수 있습니다. 
+
+최신 버전(1.0.1+)에서는 확장 프로그램이 활성화될 때 백그라운드에서 자동으로 모델을 초기화하므로, 팝업을 여는 시점에 따라 다음과 같은 상태가 표시될 수 있습니다:
+
+- 모델 초기화가 이미 완료된 경우: 즉시 "준비 완료" 상태가 표시됩니다.
+- 모델 초기화가 진행 중인 경우: "로딩 중" 상태가 표시되며, 백그라운드에서 초기화가 완료될 때까지 기다립니다.
+- 브라우저가 서비스 워커를 종료한 후: 새로운 초기화 과정이 시작됩니다.
+- 초기화 오류 발생 시: 자동으로 최대 3회까지 초기화를 재시도합니다. 팝업 UI에서 "재시도 중" 상태와 함께 시각적으로 표시됩니다.
+
+이러한 방식은 개인 정보 보호를 위해 모든 처리를 로컬에서 수행하는 기술적 특성입니다. 저희는 로딩 시간을 최소화하고 안정성을 높이기 위해 지속적으로 개선하고 있습니다.
+
+### "콘텐츠 스크립트에 연결할 수 없음" 오류가 발생합니다. 어떻게 해결하나요?
+
+이 오류는 확장 프로그램이 YouTube 페이지의 콘텐츠 스크립트와 통신할 수 없을 때 발생합니다. 다음 방법으로 해결해 보세요:
+
+1. YouTube 페이지를 새로고침한 후 다시 시도하세요.
+2. YouTube 페이지가 완전히 로드된 후 확장 프로그램을 사용하세요.
+3. 브라우저 개발자 도구에서 콘솔 오류가 있는지 확인하세요.
+4. 확장 프로그램을 비활성화했다가 다시 활성화해 보세요.
+5. 브라우저를 재시작해 보세요.
+
+위 방법으로도 해결되지 않는 경우, 확장 프로그램을 제거한 후 다시 설치해 보세요.
 
 ### 사용 가능한 AI 모델은 무엇인가요?
 
@@ -111,28 +132,11 @@ AI 모델은 사용자가 팝업을 열어 내용 정리를 요청할 때만 로
 6. Click "Load unpacked" and select the Synthra directory
 7. The extension should now be installed and ready to use
 
-## Model Requirements
-
-### Free Model
-- Name: Gemma 3 1B Instruct (quantized)
-- Size: ~1GB
-- Format: GGUF (compatible with WebLLM)
-- Performance: Good for basic summarization
-- Max output tokens: 2048
-
-### Premium Model
-- Name: Gemma 3 4B Instruct (quantized)
-- Size: ~2GB
-- Format: GGUF (compatible with WebLLM)
-- Performance: Better for detailed analysis and additional features
-- Max output tokens: 4096
-
 ## Usage
 
 1. Navigate to any YouTube video
 2. Click the Synthra button that appears in the YouTube player controls
 3. View the generated summary in the panel that appears
-4. (Premium) Access additional features like timestamp navigation and related topics
 
 ## Development
 
@@ -225,6 +229,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 *Note: The actual LLM models are not included in this repository due to size constraints and licensing requirements. Users need to download compatible models separately and place them in the appropriate directories.*
 
 ## 주요 업데이트
+
+### 버전 1.0.2
+- 엔진 초기화 안정성 개선 - 오류 발생 시 자동 재시도 기능 추가 및 UI에 재시도 상태 표시
+- 재시도 UI 디자인 개선 - 더 명확한 상태 표시 및 애니메이션 추가
 
 ### 버전 1.0.1
 - 중국어 지원 추가 - 이제 팝업 UI와 요약 기능이 중국어로도 제공됩니다.

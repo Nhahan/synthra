@@ -160,11 +160,19 @@
     "description": "语言选择器标签"
   },
   "autoSummaryToggle": {
-    "message": "自动摘要",
+    "message": "启用摘要功能",
     "description": "自动摘要开关标签"
   },
   "autoSummaryDesc": {
     "message": "启用后，访问YouTube视频页面时将自动生成摘要。",
     "description": "自动摘要功能描述"
+  },
+  "statusRetrying": {
+    "message": "重试中",
+    "description": "引擎初始化重试状态"
+  },
+  "statusDescRetrying": {
+    "message": "正在重试引擎初始化...",
+    "description": "引擎初始化重试状态描述"
   }
 }
