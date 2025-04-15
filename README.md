@@ -1,25 +1,95 @@
-# Synthra - AI YouTube Transcript Summarizer
+# Synthra
 
-Synthra is a Chrome extension that uses AI to summarize YouTube video transcripts, helping users quickly understand the content of videos without watching them entirely.
+<p align="center">
+  <img src="icons/icon128.png" alt="Synthra 로고" width="128" height="128">
+</p>
 
-## Features
+AI 기반 Chrome 확장 프로그램으로, YouTube 비디오를 브라우저에서 직접, 오프라인으로, 개인 정보 보호를 최우선으로 하여 요약(내용 정리)합니다.
 
-- **Instant Summaries**: Get concise summaries of YouTube videos with a single click
-- **Local AI Processing**: Uses WebLLM to run LLM models directly in your browser
-- **GPU Acceleration**: Leverages WebGPU for fast local processing when available
-- **Privacy-Focused**: All processing happens locally, no data sent to external servers
-- **Free & Premium Tiers**: Basic summarization with the free model, advanced features with premium
-- **Timestamps**: (Premium) Get summaries with timestamps to navigate to specific parts of videos
-- **Related Topics**: (Premium) Discover related topics and concepts mentioned in the video
+## 주요 기능
 
-## How It Works
+-   ✨ **즉각적인 내용 정리**: 페이지를 벗어나지 않고 YouTube 비디오의 핵심 내용을 간결하게 파악할 수 있습니다.
+-   🔒 **개인 정보 최우선**: 모든 처리가 로컬에서 이루어집니다 - 어떠한 데이터도 브라우저 외부로 전송되지 않습니다.
+-   🔌 **오프라인 지원**: 한 번 설치되면 인터넷 연결 없이도 작동합니다 (모델 로딩 완료 후).
+-   🌐 **다국어 지원**: 팝업 UI 및 내용 정리를 **영어, 한국어, 일본어, 중국어**로 제공합니다. (팝업에서 언어 선택 가능)
+-   🚀 **로컬 AI 모델**: WebLLM 기술을 사용하여 브라우저 내에서 직접 AI 모델을 실행합니다. (현재 Gemma 모델 사용)
+-   📊 **맥락 기반 정리**: 비디오 스크립트를 기반으로 AI가 생성하는 구조화된 내용 정리.
 
-Synthra extracts the transcript from YouTube videos and processes it using locally-stored LLM models:
+## 설치 방법
 
-1. **Free version**: Uses a 1GB Gemma model for basic summarization
-2. **Premium version**: Uses a more powerful 2GB Gemma model for detailed analysis and additional features
+### Chrome 웹 스토어 (권장)
 
-All processing happens locally within the browser using WebLLM, ensuring privacy and eliminating the need for server-based processing.
+1.  [Chrome 웹 스토어의 Synthra 페이지](https://chrome.google.com/webstore/detail/synthra/abc123) 방문 (링크는 예시입니다)
+2.  "Chrome에 추가" 클릭
+3.  확장 프로그램이 자동으로 설치됩니다.
+
+### 수동 설치 (개발자용)
+
+1.  [릴리스 페이지](https://github.com/username/synthra/releases)에서 최신 릴리스를 다운로드합니다 (링크는 예시입니다). 또는 코드를 직접 빌드합니다 (`npm run build` 실행 후 `dist` 폴더 사용).
+2.  압축 파일을 해제합니다 (해당하는 경우).
+3.  Chrome에서 `chrome://extensions/`로 이동합니다.
+4.  오른쪽 상단의 "개발자 모드"를 활성화합니다.
+5.  "압축 해제된 확장 프로그램을 로드합니다."를 클릭하고, 압축 해제된 폴더 또는 `dist` 폴더를 선택합니다.
+
+## 사용 방법
+
+1.  YouTube 비디오 페이지로 이동합니다.
+2.  브라우저 툴바에서 Synthra 확장 프로그램 아이콘을 클릭하여 팝업을 엽니다.
+3.  AI 엔진이 로딩될 때까지 잠시 기다립니다 (진행률 표시).
+4.  엔진 로딩이 완료되면 팝업 창에 현재 비디오의 정리된 내용이 자동으로 표시됩니다.
+5.  팝업 오른쪽 상단의 드롭다운 메뉴에서 원하는 정리 언어(한국어, 영어, 일본어, 중국어)를 선택할 수 있습니다. 언어 변경 시 내용이 해당 언어로 다시 정리됩니다.
+
+## 개발
+
+개발 과정, 프로젝트 구조, 가이드라인 등에 대한 자세한 내용은 [개발 가이드 (DEVELOPMENT_GUIDE.md)](DEVELOPMENT_GUIDE.md)를 참조하십시오.
+
+## 아키텍처
+
+Synthra는 서비스 워커 아키텍처를 사용하여 모든 처리가 로컬 브라우저에서 발생합니다:
+
+1.  **콘텐츠 스크립트 (`ts/content.ts`)**: YouTube 페이지에서 `youtube-transcript` 라이브러리를 사용하여 비디오 스크립트를 추출합니다. 백그라운드로부터 스크립트 요청을 받아 응답합니다.
+2.  **백그라운드 서비스 워커 (`ts/background.ts`)**: WebLLM을 사용하여 AI 모델을 로드하고 실행합니다. 팝업으로부터 내용 정리 요청을 받아 처리하고, 콘텐츠 스크립트와 통신하여 스크립트를 가져옵니다.
+3.  **팝업 UI (`popup.html`, `ts/popup.ts`)**: 확장 프로그램 설정(언어 선택) 및 상태 표시, 정리된 내용 표시를 담당합니다. 백그라운드와 통신하여 상태를 확인하고 내용 정리를 요청합니다.
+
+모든 핵심 AI 처리는 WebLLM을 통해 서비스 워커 내에서 직접 이루어집니다.
+
+## 개인 정보 보호 정책
+
+Synthra는 개인 정보 보호를 핵심 원칙으로 설계되었습니다:
+
+-   모든 처리는 사용자의 기기 내 로컬 환경에서 이루어집니다.
+-   어떠한 데이터도 외부 서버로 전송되지 않습니다.
+-   사용자 데이터는 수집되거나 저장되지 않습니다.
+-   추적 또는 분석 기능이 포함되어 있지 않습니다.
+
+## FAQ
+
+### 인터넷 연결 없이 어떻게 작동하나요?
+
+Synthra는 확장 프로그램을 설치할 때 AI 모델을 다운로드합니다. 그 후 모든 AI 처리는 인터넷 연결 없이 브라우저에서 직접 이루어집니다. 단, YouTube 비디오 자체를 보거나 스크립트를 가져오려면 인터넷 연결이 필요합니다.
+
+### 왜 팝업을 열 때마다 모델 로딩이 표시되나요?
+
+Synthra는 Chrome의 Manifest V3 규격에 따라 서비스 워커에서 AI 모델을 실행합니다. 브라우저 자원을 효율적으로 사용하기 위해, 서비스 워커는 일정 시간 사용하지 않으면 자동으로 중지될 수 있습니다. 팝업을 다시 열면 서비스 워커가 재시작되면서 모델 로딩 과정이 다시 필요할 수 있습니다. 이는 개인 정보 보호를 위해 모든 처리를 로컬에서 수행하는 방식의 기술적 특성입니다. 저희는 로딩 시간을 최소화하기 위해 노력하고 있습니다.
+
+### 사용 가능한 AI 모델은 무엇인가요?
+
+현재 Google의 Gemma 모델 (gemma-2-2b-it)을 사용하여 브라우저 내에서 실행됩니다.
+
+### Synthra가 브라우저 속도를 느리게 만드나요?
+
+AI 모델은 사용자가 팝업을 열어 내용 정리를 요청할 때만 로드 및 실행됩니다. 대부분의 최신 컴퓨터에서 눈에 띄는 속도 저하 없이 실행되도록 최적화되었습니다.
+
+### 어떤 브라우저를 지원하나요?
+
+현재 Synthra는 Google Chrome 및 Chromium 기반 브라우저(예: Edge, Brave, Opera)에서 사용할 수 있습니다. Firefox 지원은 향후 계획 중입니다.
+
+## 감사의 말
+
+-   [WebLLM](https://webllm.mlc.ai/) - 브라우저 기반 추론 엔진 제공
+-   [Gemma](https://ai.google.dev/gemma) - 기반 모델 제공
+-   [youtube-transcript](https://github.com/Kakulukian/youtube-transcript) - 유튜브 스크립트 추출 라이브러리
+-   [Chrome Extensions API](https://developer.chrome.com/docs/extensions/) - 확장 프로그램 프레임워크
 
 ## Technology Stack
 
