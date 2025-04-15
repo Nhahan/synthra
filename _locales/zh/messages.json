@@ -1,0 +1,162 @@
+{
+  "appName": {
+    "message": "Synthra - YouTube AI 摘要工具",
+    "description": "扩展名称"
+  },
+  "appDesc": {
+    "message": "使用AI技术自动总结YouTube视频字幕，快速掌握核心内容的工具",
+    "description": "扩展描述"
+  },
+  "popupTitle": {
+    "message": "Synthra",
+    "description": "弹出窗口标题"
+  },
+  "popupHeader": {
+    "message": "Synthra",
+    "description": "弹出窗口标题"
+  },
+  "statusTitle": {
+    "message": "状态",
+    "description": "状态部分标题"
+  },
+  "statusChecking": {
+    "message": "正在检查状态...",
+    "description": "状态检查消息"
+  },
+  "statusLoadingEngine": {
+    "message": "正在加载AI引擎状态...",
+    "description": "引擎加载状态消息"
+  },
+  "statusInitializing": {
+    "message": "正在初始化...",
+    "description": "引擎初始化状态"
+  },
+  "statusLoading": {
+    "message": "加载中...",
+    "description": "加载状态"
+  },
+  "statusReady": {
+    "message": "准备就绪",
+    "description": "准备就绪状态"
+  },
+  "statusError": {
+    "message": "发生错误",
+    "description": "错误状态"
+  },
+  "statusIdle": {
+    "message": "空闲中",
+    "description": "空闲状态"
+  },
+  "statusDescInitializing": {
+    "message": "正在初始化AI引擎...",
+    "description": "初始化状态描述"
+  },
+  "statusDescLoading": {
+    "message": "正在加载模型...",
+    "description": "加载状态描述"
+  },
+  "statusDescReady": {
+    "message": "AI引擎已准备就绪。请访问YouTube视频。",
+    "description": "准备就绪状态描述"
+  },
+  "statusDescError": {
+    "message": "发生错误: {error}",
+    "description": "错误状态描述"
+  },
+  "statusDescErrorPlaceholder": {
+    "message": "发生错误: {error}",
+    "description": "错误状态描述模板"
+  },
+  "statusDescIdle": {
+    "message": "系统处于空闲状态。",
+    "description": "空闲状态描述"
+  },
+  "summaryTitle": {
+    "message": "摘要内容",
+    "description": "摘要部分标题"
+  },
+  "summaryLoading": {
+    "message": "正在生成摘要...",
+    "description": "摘要加载消息"
+  },
+  "summaryErrorPrefix": {
+    "message": "错误",
+    "description": "摘要错误前缀"
+  },
+  "summaryNotApplicable": {
+    "message": "仅适用于YouTube视频页面。",
+    "description": "摘要不适用消息"
+  },
+  "usageTitle": {
+    "message": "使用方法",
+    "description": "使用方法部分标题"
+  },
+  "usageDesc": {
+    "message": "在YouTube视频页面上打开此弹窗将自动生成摘要。您可以在右上角的下拉菜单中更改摘要语言。",
+    "description": "使用方法描述"
+  },
+  "contentScriptError": {
+    "message": "无法连接到内容脚本。请确保YouTube页面已加载且扩展已激活。",
+    "description": "内容脚本连接错误"
+  },
+  "retrying": {
+    "message": "正在重试...",
+    "description": "重试消息"
+  },
+  "unknownError": {
+    "message": "未知错误",
+    "description": "未知错误消息"
+  },
+  "loading": {
+    "message": "正在生成摘要...",
+    "description": "加载消息"
+  },
+  "errorMessage": {
+    "message": "生成摘要时发生错误",
+    "description": "错误消息"
+  },
+  "upgradeButton": {
+    "message": "升级到高级版",
+    "description": "升级按钮文本"
+  },
+  "freeVersion": {
+    "message": "免费版",
+    "description": "免费版标签"
+  },
+  "premiumVersion": {
+    "message": "高级版",
+    "description": "高级版标签"
+  },
+  "summarizeButton": {
+    "message": "摘要此视频",
+    "description": "摘要按钮文本"
+  },
+  "downloadModelPrompt": {
+    "message": "您需要先下载AI模型。",
+    "description": "下载模型提示"
+  },
+  "downloadModelButton": {
+    "message": "下载模型",
+    "description": "下载模型按钮文本"
+  },
+  "downloadingModel": {
+    "message": "正在下载模型...这可能需要几分钟。",
+    "description": "下载模型消息"
+  },
+  "modelDownloadComplete": {
+    "message": "模型下载成功！",
+    "description": "模型下载完成消息"
+  },
+  "modelDownloadError": {
+    "message": "模型下载失败。请重试。",
+    "description": "模型下载错误消息"
+  },
+  "settingsTitle": {
+    "message": "设置",
+    "description": "设置标题"
+  },
+  "languageSelector": {
+    "message": "语言",
+    "description": "语言选择器标签"
+  }
+}

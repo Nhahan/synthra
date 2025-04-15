@@ -222,4 +222,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-*Note: The actual LLM models are not included in this repository due to size constraints and licensing requirements. Users need to download compatible models separately and place them in the appropriate directories.* 
+*Note: The actual LLM models are not included in this repository due to size constraints and licensing requirements. Users need to download compatible models separately and place them in the appropriate directories.*
+
+## 주요 업데이트
+
+### 버전 1.0.1
+- 중국어 지원 추가 - 이제 팝업 UI와 요약 기능이 중국어로도 제공됩니다.
+- 반응형 디자인 개선 - 다양한 화면 크기에 최적화된 UI 제공. 

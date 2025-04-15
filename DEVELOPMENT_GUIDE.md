@@ -71,7 +71,9 @@ synthra/
 
 ### 국제화 (`_locales`)
 
-*   `en`, `ko`, `ja`, `zh` 디렉토리 및 `messages.json` 파일.
+*   `en` (영어), `ko` (한국어), `ja` (일본어), `zh` (중국어) 디렉토리 및 `messages.json` 파일.
+*   각 언어별 번역은 해당 디렉토리의 `messages.json` 파일에 정의됩니다.
+*   새 언어를 추가하려면 해당 언어 코드의 디렉토리를 생성하고 `messages.json` 파일을 작성한 후, `popup.html`의 언어 선택 드롭다운에 옵션을 추가해야 합니다.
 
 ## 빌드 및 실행
 
