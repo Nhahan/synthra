@@ -63,39 +63,53 @@ async function initSynthra(): Promise<void> {
 
 // Function to trigger auto summary
 async function triggerAutoSummary(): Promise<void> {
-  if (!currentVideoId || !isAutoSummaryEnabled) {
-    console.log("[Content] Auto summary skipped: no video ID or feature disabled");
-    return;
-  }
-  
-  console.log(`[Content] Triggering auto summary for video ${currentVideoId} in ${currentLanguage}`);
-  
-  try {
-    // Get transcript
-    const transcript = await getTranscript();
-    if (!transcript) {
-      console.error("[Content] Cannot generate auto summary: failed to get transcript");
-      return;
+    if (!isAutoSummaryEnabled) {
+        console.log("[Content] Auto summary is disabled, skipping...");
+        return;
     }
+
+    console.log("[Content] Starting auto summary process");
     
-    // Request summary from background script
-    const response = await chrome.runtime.sendMessage({
-      action: 'summarizeVideo',
-      tabId: await getCurrentTabId(),
-      language: currentLanguage
-    });
-    
-    console.log("[Content] Auto summary result:", response);
-    
-    // Optionally display the summary on the page or notify the user
-    // This could be a notification, badge, or UI element
-    if (response && response.success && response.summary) {
-      // For now, we'll just leave this for popup to handle
-      console.log("[Content] Auto summary generated successfully");
+    try {
+        // 트랜스크립트가 로드될 때까지 기다림 (최대 10초)
+        let attempts = 0;
+        const maxAttempts = 20; // 10초 (500ms * 20)
+        
+        // 스피너 요소가 존재할 때까지 대기
+        while (attempts < maxAttempts) {
+            if (hasTranscript()) {
+                console.log("[Content] Transcript found, proceeding with summary");
+                break;
+            }
+            
+            console.log(`[Content] Waiting for transcript (attempt ${attempts + 1}/${maxAttempts})...`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            attempts++;
+        }
+        
+        if (attempts >= maxAttempts) {
+            console.log("[Content] Transcript not found after maximum attempts, aborting auto summary");
+            return;
+        }
+        
+        // 트랜스크립트를 가져와서 백그라운드 스크립트에 보내기
+        const transcript = await getTranscript();
+        if (!transcript) {
+            console.log("[Content] Failed to get transcript for auto summary");
+            return;
+        }
+        
+        console.log(`[Content] Got transcript (${transcript.length} chars), sending request for auto summary`);
+        
+        // 백그라운드 또는 팝업에 트랜스크립트가 준비되었음을 알림
+        chrome.runtime.sendMessage({
+            action: "transcriptReady",
+            transcript: transcript,
+            videoId: currentVideoId
+        });
+    } catch (error) {
+        console.error("[Content] Error during auto summary:", error);
     }
-  } catch (error) {
-    console.error("[Content] Error during auto summary generation:", error);
-  }
 }
 
 // Helper function to get current tab ID
@@ -187,53 +201,88 @@ function observeNavigation(): void {
   observer.observe(document.body, { subtree: true, childList: true }); // Observe body for broader changes
 }
 
-// --- Message Listener (for requests from background script) ---
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log(`[Content] Received message: ${message.action} from ${sender.id}`);
+// Listen for messages from the popup or background
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log(`[Content] Received message: ${request.action} from ${sender.id}`);
     
-    if (message.action === "getTranscript") {
-        console.log("[Content] Processing 'getTranscript' request...");
-        getTranscript() // Call the updated getTranscript function
-            .then(transcriptText => { // Expecting string | null now
-                if (!transcriptText) {
-                    // Send specific error if extraction failed but didn't throw (e.g., no video ID)
-                    console.error("[Content] Failed to get transcript for background request (returned null).");
-                    sendResponse({ error: "Could not extract transcript (video ID missing or other issue)." });
-                } else {
-                    console.log("[Content] Successfully extracted transcript. Sending back to background.");
-                    sendResponse({ transcript: transcriptText }); // Send the string directly
-                }
-            })
-            .catch(error => {
-                // Catch errors thrown by getTranscript (library errors, empty transcript errors)
-                const typedError = error instanceof Error ? error : new Error(String(error));
-                console.error("[Content] Error in getTranscript promise:", typedError);
-                sendResponse({ error: `Failed to get transcript: ${typedError.message}` }); // Send the specific error message
-            });
-        return true; // Indicate asynchronous response
-    } 
-    else if (message.action === "autoSummaryEnabled") {
-        console.log("[Content] Processing 'autoSummaryEnabled' message");
-        // Update settings and trigger auto summary if on a video page
-        isAutoSummaryEnabled = true;
-        if (message.language) {
-            currentLanguage = message.language;
+    // Ping 요청에 응답하여 컨텐츠 스크립트가 활성화되어 있음을 확인
+    if (request.action === "ping") {
+        console.log("[Content] Ping received, sending response");
+        sendResponse({ status: "alive" });
+        return true;
+    }
+
+    if (request.action === "enableAutoSummary") {
+        console.log("[Content] Processing 'enableAutoSummary' message");
+        isAutoSummaryEnabled = request.enabled === true;
+        if (request.language) {
+            currentLanguage = request.language;
         }
         
-        if (currentVideoId) {
+        if (isAutoSummaryEnabled && isYouTubeVideoPage()) {
             console.log("[Content] Auto summary enabled and on video page, triggering summary");
+            // 현재 비디오 ID 업데이트 후 요약 시작
+            updateVideoId();
             triggerAutoSummary();
         }
-        
         sendResponse({ success: true });
-        return false;
+        return true; // 비동기 응답 지원
     }
     
-    console.warn(`[Content] Received unhandled action: ${message.action}`);
+    if (request.action === "getTranscript") {
+        console.log("[Content] Processing 'getTranscript' request...");
+        
+        // 비동기 함수를 이용해 스크립트 가져오기
+        getTranscript().then((transcript) => {
+            if (transcript) {
+                console.log("[Content] Successfully extracted transcript. Sending back to background.");
+                sendResponse({ transcript: transcript });
+            } else {
+                console.error("[Content] Failed to get transcript for background request (returned null).");
+                sendResponse({ error: "Could not extract transcript (video ID missing or other issue)." });
+            }
+        }).catch((error) => {
+            const typedError = error instanceof Error ? error : new Error(String(error));
+            console.error("[Content] Error in getTranscript promise:", typedError);
+            sendResponse({ error: `Failed to get transcript: ${typedError.message}` });
+        });
+        
+        return true;
+    }
+    
+    console.warn(`[Content] Received unhandled action: ${request.action}`);
     return false;
 });
 
 console.log("[Content] Script loaded and message listener added.");
 
 // Ensure the file is treated as a module for global augmentation
-export {}; 
+export {};
+
+// 유튜브 비디오 페이지인지 확인하는 함수
+function isYouTubeVideoPage(): boolean {
+    return location.href.includes("youtube.com/watch") && !!getVideoIdFromUrl();
+}
+
+// URL에서 비디오 ID 추출
+function getVideoIdFromUrl(): string | null {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('v');
+}
+
+// 트랜스크립트 있는지 확인하는 함수
+function hasTranscript(): boolean {
+    // YouTube의 트랜스크립트 버튼이나 컨테이너가 있는지 확인
+    const transcriptButton = document.querySelector('button[aria-label*="transcript" i], button[aria-label*="자막" i]');
+    if (transcriptButton) {
+        return true;
+    }
+    
+    // 또는 YouTube의 텍스트 트랙 (CC) 확인
+    const video = document.querySelector('video');
+    if (video && video.textTracks && video.textTracks.length > 0) {
+        return true;
+    }
+    
+    return false;
+} 
