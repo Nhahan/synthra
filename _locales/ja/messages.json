@@ -1,0 +1,162 @@
+{
+  "appName": {
+    "message": "Synthra - YouTube AI 要約ツール",
+    "description": "拡張機能の名前"
+  },
+  "appDesc": {
+    "message": "AI技術を使用してYouTube動画の字幕を自動要約し、核心内容を素早く把握できるツール",
+    "description": "拡張機能の説明"
+  },
+  "popupTitle": {
+    "message": "Synthra",
+    "description": "ポップアップウィンドウのタイトル"
+  },
+  "popupHeader": {
+    "message": "Synthra",
+    "description": "ポップアップヘッダーのタイトル"
+  },
+  "statusTitle": {
+    "message": "ステータス",
+    "description": "ステータスセクションのタイトル"
+  },
+  "statusChecking": {
+    "message": "ステータス確認中...",
+    "description": "ステータス確認メッセージ"
+  },
+  "statusLoadingEngine": {
+    "message": "AIエンジンステータスを読み込み中...",
+    "description": "エンジン読み込みステータスメッセージ"
+  },
+  "statusInitializing": {
+    "message": "初期化中...",
+    "description": "エンジン初期化ステータス"
+  },
+  "statusLoading": {
+    "message": "読み込み中...",
+    "description": "読み込みステータス"
+  },
+  "statusReady": {
+    "message": "準備完了",
+    "description": "準備完了ステータス"
+  },
+  "statusError": {
+    "message": "エラー発生",
+    "description": "エラーステータス"
+  },
+  "statusIdle": {
+    "message": "アイドル状態",
+    "description": "アイドルステータス"
+  },
+  "statusDescInitializing": {
+    "message": "AIエンジンを初期化しています...",
+    "description": "初期化ステータスの説明"
+  },
+  "statusDescLoading": {
+    "message": "モデルを読み込んでいます...",
+    "description": "読み込みステータスの説明"
+  },
+  "statusDescReady": {
+    "message": "AIエンジンの準備ができました。YouTube動画にアクセスしてください。",
+    "description": "準備完了ステータスの説明"
+  },
+  "statusDescError": {
+    "message": "エラーが発生しました: {error}",
+    "description": "エラーステータスの説明"
+  },
+  "statusDescErrorPlaceholder": {
+    "message": "エラーが発生しました: {error}",
+    "description": "エラーステータスの説明テンプレート"
+  },
+  "statusDescIdle": {
+    "message": "システムはアイドル状態です。",
+    "description": "アイドルステータスの説明"
+  },
+  "summaryTitle": {
+    "message": "要約内容",
+    "description": "要約セクションのタイトル"
+  },
+  "summaryLoading": {
+    "message": "要約を生成中...",
+    "description": "要約読み込みメッセージ"
+  },
+  "summaryErrorPrefix": {
+    "message": "エラー",
+    "description": "要約エラー接頭辞"
+  },
+  "summaryNotApplicable": {
+    "message": "YouTube動画ページでのみ利用可能です。",
+    "description": "要約不可メッセージ"
+  },
+  "usageTitle": {
+    "message": "使用方法",
+    "description": "使用方法セクションタイトル"
+  },
+  "usageDesc": {
+    "message": "YouTube動画ページでこのポップアップを開くと、自動的に要約が生成されます。要約の言語は右上のドロップダウンメニューで変更できます。",
+    "description": "使用方法の説明"
+  },
+  "contentScriptError": {
+    "message": "コンテンツスクリプトに接続できません。YouTubeページが読み込まれており、拡張機能が有効になっていることを確認してください。",
+    "description": "コンテンツスクリプト接続エラー"
+  },
+  "retrying": {
+    "message": "再試行中...",
+    "description": "再試行メッセージ"
+  },
+  "unknownError": {
+    "message": "不明なエラー",
+    "description": "不明なエラーメッセージ"
+  },
+  "loading": {
+    "message": "要約生成中...",
+    "description": "ローディングメッセージ"
+  },
+  "errorMessage": {
+    "message": "要約の生成中にエラーが発生しました",
+    "description": "エラーメッセージ"
+  },
+  "upgradeButton": {
+    "message": "プレミアムへアップグレード",
+    "description": "アップグレードボタンテキスト"
+  },
+  "freeVersion": {
+    "message": "無料バージョン",
+    "description": "無料バージョンラベル"
+  },
+  "premiumVersion": {
+    "message": "プレミアムバージョン",
+    "description": "プレミアムバージョンラベル"
+  },
+  "summarizeButton": {
+    "message": "この動画を要約する",
+    "description": "要約ボタンテキスト"
+  },
+  "downloadModelPrompt": {
+    "message": "まずAIモデルをダウンロードする必要があります。",
+    "description": "モデルダウンロードガイド"
+  },
+  "downloadModelButton": {
+    "message": "モデルをダウンロード",
+    "description": "モデルダウンロードボタンテキスト"
+  },
+  "downloadingModel": {
+    "message": "モデルダウンロード中... 数分かかる場合があります。",
+    "description": "モデルダウンロード中メッセージ"
+  },
+  "modelDownloadComplete": {
+    "message": "モデルダウンロード完了！",
+    "description": "モデルダウンロード完了メッセージ"
+  },
+  "modelDownloadError": {
+    "message": "モデルのダウンロードに失敗しました。もう一度お試しください。",
+    "description": "モデルダウンロードエラーメッセージ"
+  },
+  "settingsTitle": {
+    "message": "設定",
+    "description": "設定タイトル"
+  },
+  "languageSelector": {
+    "message": "言語",
+    "description": "言語セレクタラベル"
+  }
+}

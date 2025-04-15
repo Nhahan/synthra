@@ -1,0 +1,162 @@
+{
+  "appName": {
+    "message": "Synthra - 유튜브 AI 요약 도구",
+    "description": "확장 프로그램의 이름"
+  },
+  "appDesc": {
+    "message": "AI 기술로 YouTube 동영상 대본을 자동 요약하여 핵심 내용을 빠르게 파악할 수 있는 도구",
+    "description": "확장 프로그램의 설명"
+  },
+  "popupTitle": {
+    "message": "Synthra",
+    "description": "팝업 창의 제목"
+  },
+  "popupHeader": {
+    "message": "Synthra",
+    "description": "팝업 헤더의 제목"
+  },
+  "statusTitle": {
+    "message": "상태",
+    "description": "상태 섹션의 제목"
+  },
+  "statusChecking": {
+    "message": "상태 확인 중...",
+    "description": "상태 확인 메시지"
+  },
+  "statusLoadingEngine": {
+    "message": "AI 엔진 상태를 불러오는 중입니다...",
+    "description": "엔진 로딩 상태 메시지"
+  },
+  "statusInitializing": {
+    "message": "초기화 중...",
+    "description": "엔진 초기화 상태"
+  },
+  "statusLoading": {
+    "message": "로딩 중...",
+    "description": "로딩 상태"
+  },
+  "statusReady": {
+    "message": "준비 완료",
+    "description": "준비 완료 상태"
+  },
+  "statusError": {
+    "message": "오류 발생",
+    "description": "오류 상태"
+  },
+  "statusIdle": {
+    "message": "대기 중",
+    "description": "대기 상태"
+  },
+  "statusDescInitializing": {
+    "message": "AI 엔진을 초기화하는 중입니다...",
+    "description": "초기화 상태 설명"
+  },
+  "statusDescLoading": {
+    "message": "모델을 로딩하는 중입니다...",
+    "description": "로딩 상태 설명"
+  },
+  "statusDescReady": {
+    "message": "AI 엔진이 준비되었습니다. 유튜브 영상을 방문하세요.",
+    "description": "준비 완료 상태 설명"
+  },
+  "statusDescError": {
+    "message": "오류가 발생했습니다: {error}",
+    "description": "오류 상태 설명"
+  },
+  "statusDescErrorPlaceholder": {
+    "message": "오류가 발생했습니다: {error}",
+    "description": "오류 상태 설명 템플릿"
+  },
+  "statusDescIdle": {
+    "message": "시스템이 대기 중입니다.",
+    "description": "대기 상태 설명"
+  },
+  "summaryTitle": {
+    "message": "요약 내용",
+    "description": "요약 섹션의 제목"
+  },
+  "summaryLoading": {
+    "message": "요약을 생성하는 중...",
+    "description": "요약 로딩 메시지"
+  },
+  "summaryErrorPrefix": {
+    "message": "오류",
+    "description": "요약 오류 접두사"
+  },
+  "summaryNotApplicable": {
+    "message": "유튜브 동영상 페이지에서만 사용할 수 있습니다.",
+    "description": "요약 불가능 메시지"
+  },
+  "usageTitle": {
+    "message": "사용 방법",
+    "description": "사용 방법 섹션 제목"
+  },
+  "usageDesc": {
+    "message": "유튜브 영상 페이지에서 이 팝업을 열면 자동으로 요약이 생성됩니다. 요약 언어는 오른쪽 위 드롭다운에서 변경할 수 있습니다.",
+    "description": "사용 방법 설명"
+  },
+  "contentScriptError": {
+    "message": "컨텐츠 스크립트에 연결할 수 없습니다. YouTube 페이지가 로드되어 있고 확장 프로그램이 활성화되어 있는지 확인하세요.",
+    "description": "컨텐츠 스크립트 연결 오류"
+  },
+  "retrying": {
+    "message": "다시 시도 중...",
+    "description": "재시도 메시지"
+  },
+  "unknownError": {
+    "message": "알 수 없는 오류",
+    "description": "알 수 없는 오류 메시지"
+  },
+  "loading": {
+    "message": "요약 생성 중...",
+    "description": "로딩 메시지"
+  },
+  "errorMessage": {
+    "message": "요약을 생성하는 중 오류가 발생했습니다",
+    "description": "오류 메시지"
+  },
+  "upgradeButton": {
+    "message": "프리미엄으로 업그레이드",
+    "description": "업그레이드 버튼 텍스트"
+  },
+  "freeVersion": {
+    "message": "무료 버전",
+    "description": "무료 버전 라벨"
+  },
+  "premiumVersion": {
+    "message": "프리미엄 버전",
+    "description": "프리미엄 버전 라벨"
+  },
+  "summarizeButton": {
+    "message": "이 동영상 요약하기",
+    "description": "요약 버튼 텍스트"
+  },
+  "downloadModelPrompt": {
+    "message": "먼저 AI 모델을 다운로드해야 합니다.",
+    "description": "모델 다운로드 안내"
+  },
+  "downloadModelButton": {
+    "message": "모델 다운로드",
+    "description": "모델 다운로드 버튼 텍스트"
+  },
+  "downloadingModel": {
+    "message": "모델 다운로드 중... 몇 분 정도 소요될 수 있습니다.",
+    "description": "모델 다운로드 중 메시지"
+  },
+  "modelDownloadComplete": {
+    "message": "모델 다운로드 완료!",
+    "description": "모델 다운로드 완료 메시지"
+  },
+  "modelDownloadError": {
+    "message": "모델 다운로드에 실패했습니다. 다시 시도해주세요.",
+    "description": "모델 다운로드 오류 메시지"
+  },
+  "settingsTitle": {
+    "message": "설정",
+    "description": "설정 제목"
+  },
+  "languageSelector": {
+    "message": "언어",
+    "description": "언어 선택기 라벨"
+  }
+}

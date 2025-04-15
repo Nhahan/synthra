@@ -1,0 +1,162 @@
+{
+  "appName": {
+    "message": "Synthra - YouTube AI Summarizer",
+    "description": "Name of the extension"
+  },
+  "appDesc": {
+    "message": "Quickly understand YouTube videos with AI-powered transcript summarization",
+    "description": "Description of the extension"
+  },
+  "popupTitle": {
+    "message": "Synthra",
+    "description": "Title of the popup window"
+  },
+  "popupHeader": {
+    "message": "Synthra",
+    "description": "Header title in popup"
+  },
+  "statusTitle": {
+    "message": "Status",
+    "description": "Title of the status section"
+  },
+  "statusChecking": {
+    "message": "Checking status...",
+    "description": "Status checking message"
+  },
+  "statusLoadingEngine": {
+    "message": "Loading AI engine status...",
+    "description": "Engine loading status message"
+  },
+  "statusInitializing": {
+    "message": "Initializing...",
+    "description": "Engine initializing status"
+  },
+  "statusLoading": {
+    "message": "Loading...",
+    "description": "Loading status"
+  },
+  "statusReady": {
+    "message": "Ready",
+    "description": "Ready status"
+  },
+  "statusError": {
+    "message": "Error",
+    "description": "Error status"
+  },
+  "statusIdle": {
+    "message": "Idle",
+    "description": "Idle status"
+  },
+  "statusDescInitializing": {
+    "message": "Initializing AI engine...",
+    "description": "Initializing status description"
+  },
+  "statusDescLoading": {
+    "message": "Loading model...",
+    "description": "Loading status description"
+  },
+  "statusDescReady": {
+    "message": "AI engine is ready. Visit a YouTube video.",
+    "description": "Ready status description"
+  },
+  "statusDescError": {
+    "message": "An error has occurred: {error}",
+    "description": "Error status description"
+  },
+  "statusDescErrorPlaceholder": {
+    "message": "An error has occurred: {error}",
+    "description": "Error status description template"
+  },
+  "statusDescIdle": {
+    "message": "System is idle.",
+    "description": "Idle status description"
+  },
+  "summaryTitle": {
+    "message": "Summary",
+    "description": "Title of the summary section"
+  },
+  "summaryLoading": {
+    "message": "Generating summary...",
+    "description": "Summary loading message"
+  },
+  "summaryErrorPrefix": {
+    "message": "Error",
+    "description": "Summary error prefix"
+  },
+  "summaryNotApplicable": {
+    "message": "Only available on YouTube video pages.",
+    "description": "Summary not applicable message"
+  },
+  "usageTitle": {
+    "message": "How to Use",
+    "description": "Usage section title"
+  },
+  "usageDesc": {
+    "message": "Open this popup on a YouTube video page to automatically generate a summary. You can change the summary language in the dropdown menu at the top right.",
+    "description": "Usage description"
+  },
+  "contentScriptError": {
+    "message": "Cannot connect to content script. Ensure the YouTube page is loaded and the extension is active.",
+    "description": "Content script connection error"
+  },
+  "retrying": {
+    "message": "Retrying...",
+    "description": "Retry message"
+  },
+  "unknownError": {
+    "message": "Unknown error",
+    "description": "Unknown error message"
+  },
+  "loading": {
+    "message": "Generating summary...",
+    "description": "Loading message"
+  },
+  "errorMessage": {
+    "message": "An error occurred while generating the summary",
+    "description": "Error message"
+  },
+  "upgradeButton": {
+    "message": "Upgrade to Premium",
+    "description": "Upgrade button text"
+  },
+  "freeVersion": {
+    "message": "Free Version",
+    "description": "Free version label"
+  },
+  "premiumVersion": {
+    "message": "Premium Version",
+    "description": "Premium version label"
+  },
+  "summarizeButton": {
+    "message": "Summarize This Video",
+    "description": "Summarize button text"
+  },
+  "downloadModelPrompt": {
+    "message": "You need to download the AI model first.",
+    "description": "Download model prompt"
+  },
+  "downloadModelButton": {
+    "message": "Download Model",
+    "description": "Download model button text"
+  },
+  "downloadingModel": {
+    "message": "Downloading model... This may take a few minutes.",
+    "description": "Downloading model message"
+  },
+  "modelDownloadComplete": {
+    "message": "Model downloaded successfully!",
+    "description": "Model download complete message"
+  },
+  "modelDownloadError": {
+    "message": "Failed to download model. Please try again.",
+    "description": "Model download error message"
+  },
+  "settingsTitle": {
+    "message": "Settings",
+    "description": "Settings title"
+  },
+  "languageSelector": {
+    "message": "Language",
+    "description": "Language selector label"
+  }
+}
