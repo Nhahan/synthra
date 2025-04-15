@@ -158,5 +158,13 @@
   "languageSelector": {
     "message": "Language",
     "description": "Language selector label"
+  },
+  "autoSummaryToggle": {
+    "message": "Auto Summary",
+    "description": "Auto summary toggle label"
+  },
+  "autoSummaryDesc": {
+    "message": "When enabled, automatically generates summaries when accessing YouTube video pages.",
+    "description": "Auto summary feature description"
   }
 }

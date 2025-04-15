@@ -102,7 +102,7 @@ chrome.runtime.onMessage.addListener((message: BackgroundMessage, sender: chrome
                         const response = await chrome.tabs.sendMessage(targetTabId, { action: "getTranscript" });
                         if (response && response.transcript) {
                             transcriptText = response.transcript;
-                            console.log(`[SW] Successfully received transcript from tab ${targetTabId}. Text: ${transcriptText}`);
+                            console.log(`[SW] Successfully received transcript from tab ${targetTabId}. Text length: ${transcriptText.length} chars`);
                         } else {
                             console.error(`[SW] Failed to get transcript from tab ${targetTabId}. Response:`, response);
                             throw new Error(response?.error || "No transcript received from content script.");
@@ -130,6 +130,36 @@ chrome.runtime.onMessage.addListener((message: BackgroundMessage, sender: chrome
                     console.log('[SW] Structured summary generation complete.');
                     return { success: true, summary: structuredSummary };
 
+                case 'autoSummarySettingChanged':
+                    console.log("[SW] onMessage: Handling autoSummarySettingChanged request.");
+                    // If auto summary setting was enabled, notify the content script
+                    if (message.enabled) {
+                        const tabId = message.tabId;
+                        const language = message.language as SupportedLanguage;
+                        
+                        if (!tabId || !language) {
+                            throw new Error("Missing parameters for autoSummarySettingChanged");
+                        }
+                        
+                        console.log(`[SW] Auto summary enabled: notifying content script for tab ${tabId} with language ${language}`);
+                        
+                        try {
+                            // Notify content script of the auto summary setting change
+                            await chrome.tabs.sendMessage(tabId, {
+                                action: "autoSummaryEnabled",
+                                language: language
+                            });
+                            return { success: true };
+                        } catch (error) {
+                            console.error("[SW] Error sending autoSummaryEnabled message to content script:", error);
+                            return { 
+                                success: false, 
+                                error: "Cannot reach content script for auto summary notification" 
+                            };
+                        }
+                    }
+                    return { success: true };
+
                 default:
                     console.warn(`[SW] onMessage: Unhandled async action: ${action}`);
                     return { success: false, error: `Unknown action for onMessage: ${action}` };
@@ -142,7 +172,7 @@ chrome.runtime.onMessage.addListener((message: BackgroundMessage, sender: chrome
     };
 
     // Handle async actions based on type
-    if (action === 'summarizeVideo') { 
+    if (action === 'summarizeVideo' || action === 'autoSummarySettingChanged') { 
         handleAsyncAction().then(sendResponse);
         return true; // Indicate async response
     } else {

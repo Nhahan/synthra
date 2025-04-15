@@ -30,6 +30,7 @@ let engine: MLCEngineInterface | null = null; // Engine instance
 let isLoading: boolean = true; // Track initial loading state
 let currentError: string | null = null;
 let currentLanguage: string = 'ko'; // Default language
+let autoSummaryEnabled: boolean = false; // Default auto summary setting
 
 // Content script connection retry variables
 let contentConnectionRetries = 0;
@@ -50,13 +51,22 @@ async function initPopup(): Promise<void> {
     progressBarElement = document.getElementById('progress-bar');
     progressText = document.getElementById('progress-text');
     const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
+    const autoSummaryToggle = document.getElementById('auto-summary-toggle') as HTMLInputElement;
 
-    // Load saved language and initialize dropdown
-    const savedLang = await chrome.storage.local.get('selectedLanguage');
-    currentLanguage = savedLang.selectedLanguage || 'ko';
+    // Load saved settings
+    const savedSettings = await chrome.storage.local.get(['selectedLanguage', 'autoSummaryEnabled']);
+    currentLanguage = savedSettings.selectedLanguage || 'ko';
+    autoSummaryEnabled = savedSettings.autoSummaryEnabled || false;
+    
+    // Initialize UI with saved settings
     if (languageSelect) {
         languageSelect.value = currentLanguage;
         languageSelect.addEventListener('change', handleLanguageChange);
+    }
+
+    if (autoSummaryToggle) {
+        autoSummaryToggle.checked = autoSummaryEnabled;
+        autoSummaryToggle.addEventListener('change', handleAutoSummaryToggle);
     }
     
     // Update UI text based on loaded language *immediately*
@@ -506,3 +516,30 @@ const extraMessages = {
         'retrying': '正在重试...'
     }
 };
+
+// --- Auto Summary Toggle Handling ---
+async function handleAutoSummaryToggle(event: Event): Promise<void> {
+    const toggleElement = event.target as HTMLInputElement;
+    autoSummaryEnabled = toggleElement.checked;
+    console.log(`[Popup] Auto summary ${autoSummaryEnabled ? 'enabled' : 'disabled'}`);
+    
+    // Save setting to storage
+    await chrome.storage.local.set({ autoSummaryEnabled });
+    
+    // If enabling, notify content script to potentially start auto summary
+    if (autoSummaryEnabled) {
+        // Get active tab and check for YouTube URL
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        const activeTab = tabs[0];
+        if (activeTab?.id && activeTab?.url?.includes("youtube.com/watch")) {
+            console.log("[Popup] Notifying content script about auto summary setting change on active YouTube page");
+            // Send message to background script to possibly trigger auto summary
+            chrome.runtime.sendMessage({
+                action: 'autoSummarySettingChanged',
+                enabled: true,
+                tabId: activeTab.id,
+                language: currentLanguage
+            });
+        }
+    }
+}

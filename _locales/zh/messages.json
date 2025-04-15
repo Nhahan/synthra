@@ -158,5 +158,13 @@
   "languageSelector": {
     "message": "语言",
     "description": "语言选择器标签"
+  },
+  "autoSummaryToggle": {
+    "message": "自动摘要",
+    "description": "自动摘要开关标签"
+  },
+  "autoSummaryDesc": {
+    "message": "启用后，访问YouTube视频页面时将自动生成摘要。",
+    "description": "自动摘要功能描述"
   }
 }

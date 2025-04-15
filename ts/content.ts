@@ -16,6 +16,8 @@ declare global {
 
 // --- Global variables (with types) ---
 let currentVideoId: string | null = null;
+let isAutoSummaryEnabled: boolean = false;
+let currentLanguage: string = 'ko';
 
 // Initialize when the script is injected or page loads
 if (document.readyState === "complete" || document.readyState === "interactive") {
@@ -25,30 +27,102 @@ if (document.readyState === "complete" || document.readyState === "interactive")
 }
 
 // Initialize Synthra for the current page
-function initSynthra(): void {
+async function initSynthra(): Promise<void> {
   // Debounce or ensure it only runs once per page context
   if (window.synthraInitialized) return;
   window.synthraInitialized = true;
 
   console.log("[Content] Initializing Synthra...");
   updateVideoId(); // Get current video ID
+  
+  // Load user settings
+  const settings = await chrome.storage.local.get(['autoSummaryEnabled', 'selectedLanguage']);
+  isAutoSummaryEnabled = settings.autoSummaryEnabled || false;
+  currentLanguage = settings.selectedLanguage || 'ko';
+  
+  console.log(`[Content] Settings loaded: autoSummary=${isAutoSummaryEnabled}, language=${currentLanguage}`);
 
   if (currentVideoId) {
     console.log("[Content] Synthra initialized for video:", currentVideoId);
+    
+    // If auto summary is enabled, start the summary process after a short delay
+    // to ensure the page is fully loaded
+    if (isAutoSummaryEnabled) {
+      console.log("[Content] Auto summary is enabled, will generate summary in 2 seconds");
+      setTimeout(() => {
+        triggerAutoSummary();
+      }, 2000);
+    }
   } else {
     console.log("[Content] Not a watch page or no video ID found.");
   }
+  
   // Listen for YouTube navigation events (SPA behavior)
   observeNavigation();
+}
+
+// Function to trigger auto summary
+async function triggerAutoSummary(): Promise<void> {
+  if (!currentVideoId || !isAutoSummaryEnabled) {
+    console.log("[Content] Auto summary skipped: no video ID or feature disabled");
+    return;
+  }
+  
+  console.log(`[Content] Triggering auto summary for video ${currentVideoId} in ${currentLanguage}`);
+  
+  try {
+    // Get transcript
+    const transcript = await getTranscript();
+    if (!transcript) {
+      console.error("[Content] Cannot generate auto summary: failed to get transcript");
+      return;
+    }
+    
+    // Request summary from background script
+    const response = await chrome.runtime.sendMessage({
+      action: 'summarizeVideo',
+      tabId: await getCurrentTabId(),
+      language: currentLanguage
+    });
+    
+    console.log("[Content] Auto summary result:", response);
+    
+    // Optionally display the summary on the page or notify the user
+    // This could be a notification, badge, or UI element
+    if (response && response.success && response.summary) {
+      // For now, we'll just leave this for popup to handle
+      console.log("[Content] Auto summary generated successfully");
+    }
+  } catch (error) {
+    console.error("[Content] Error during auto summary generation:", error);
+  }
+}
+
+// Helper function to get current tab ID
+async function getCurrentTabId(): Promise<number> {
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tabs && tabs.length > 0 && tabs[0].id) {
+    return tabs[0].id;
+  }
+  throw new Error("Cannot determine current tab ID");
 }
 
 // Update currentVideoId based on URL
 function updateVideoId(): void {
   const urlParams = new URLSearchParams(window.location.search);
   const newVideoId = urlParams.get('v');
+  
   if (newVideoId !== currentVideoId) {
     console.log(`[Content] Video ID changed from ${currentVideoId} to ${newVideoId}`);
     currentVideoId = newVideoId;
+    
+    // If auto summary is enabled and we have a new video ID, generate a summary
+    if (isAutoSummaryEnabled && currentVideoId) {
+      console.log("[Content] New video detected with auto summary enabled, will generate summary in 2 seconds");
+      setTimeout(() => {
+        triggerAutoSummary();
+      }, 2000);
+    }
   }
 }
 
@@ -116,6 +190,7 @@ function observeNavigation(): void {
 // --- Message Listener (for requests from background script) ---
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log(`[Content] Received message: ${message.action} from ${sender.id}`);
+    
     if (message.action === "getTranscript") {
         console.log("[Content] Processing 'getTranscript' request...");
         getTranscript() // Call the updated getTranscript function
@@ -136,7 +211,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 sendResponse({ error: `Failed to get transcript: ${typedError.message}` }); // Send the specific error message
             });
         return true; // Indicate asynchronous response
+    } 
+    else if (message.action === "autoSummaryEnabled") {
+        console.log("[Content] Processing 'autoSummaryEnabled' message");
+        // Update settings and trigger auto summary if on a video page
+        isAutoSummaryEnabled = true;
+        if (message.language) {
+            currentLanguage = message.language;
+        }
+        
+        if (currentVideoId) {
+            console.log("[Content] Auto summary enabled and on video page, triggering summary");
+            triggerAutoSummary();
+        }
+        
+        sendResponse({ success: true });
+        return false;
     }
+    
     console.warn(`[Content] Received unhandled action: ${message.action}`);
     return false;
 });
