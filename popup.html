@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Synthra</title>
+  <style>
+    body {
+      width: 320px;
+      font-family: 'Roboto', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      background: linear-gradient(135deg, #6e8efb, #a777e3);
+      color: white;
+      padding: 16px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .logo {
+      width: 100px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+
+    main {
+      padding: 16px;
+    }
+
+    .section {
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 500;
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+
+    p {
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 8px 0;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-indicator.loading {
+      background-color: #FFB900;
+      animation: pulse 1.5s infinite;
+    }
+
+    .status-indicator.ready {
+      background-color: #00C853;
+    }
+
+    .status-indicator.error {
+      background-color: #FF3D00;
+    }
+
+    .status-text {
+      font-size: 14px;
+    }
+
+    .button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      text-align: center;
+      background-color: #6e8efb;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .button:hover {
+      background-color: #5c7cfa;
+    }
+
+    .button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
+    .button.premium {
+      background-color: #a777e3;
+      margin-top: 8px;
+    }
+
+    .button.premium:hover {
+      background-color: #9966cc;
+    }
+
+    .subscription-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-left: 8px;
+    }
+
+    .subscription-badge.free {
+      background-color: #E0E0E0;
+      color: #424242;
+    }
+
+    .subscription-badge.premium {
+      background-color: #a777e3;
+      color: white;
+    }
+
+    .features-list {
+      padding-left: 20px;
+      margin: 12px 0;
+      font-size: 13px;
+    }
+
+    .features-list li {
+      margin-bottom: 6px;
+    }
+
+    .divider {
+      height: 1px;
+      background-color: #E0E0E0;
+      margin: 16px 0;
+    }
+
+    footer {
+      padding: 12px 16px;
+      background-color: #F5F5F5;
+      font-size: 11px;
+      color: #757575;
+      text-align: center;
+      border-top: 1px solid #E0E0E0;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 0.6;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0.6;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Synthra</h1>
+    <div class="subtitle">AI 기반 유튜브 스크립트 요약</div>
+  </header>
+
+  <main>
+    <div class="section">
+      <div class="status">
+        <div id="model-status-indicator" class="status-indicator loading"></div>
+        <div id="model-status-text" class="status-text">모델 상태 확인 중...</div>
+        <div id="subscription-badge" class="subscription-badge free">무료</div>
+      </div>
+      <p id="status-description">무료 모델을 로드하는 중입니다. 잠시만 기다려주세요.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <h2>사용 방법</h2>
+      <p>유튜브 동영상 시청 중 Synthra 버튼을 클릭하면 영상의 자동 요약이 제공됩니다.</p>
+    </div>
+
+    <div class="section">
+      <h2>프리미엄 기능</h2>
+      <ul class="features-list">
+        <li>더 자세한 요약 및 핵심 포인트</li>
+        <li>타임스탬프 기반 요약 제공</li>
+        <li>더 빠른 요약 속도 (2GB 고성능 모델)</li>
+        <li>관련 주제 및 추천 동영상 제안</li>
+      </ul>
+      <button id="upgrade-button" class="button premium">프리미엄으로 업그레이드</button>
+    </div>
+
+    <div id="premium-controls" class="section" style="display: none;">
+      <h2>프리미엄 컨트롤</h2>
+      <p>프리미엄 모델을 관리하고 고급 설정을 구성할 수 있습니다.</p>
+      <button id="load-premium-model" class="button">프리미엄 모델 로드</button>
+    </div>
+  </main>
+
+  <footer>
+    Synthra v1.0.0 &copy; 2023 Synthra AI
+  </footer>
+
+  <script src="js/popup.js"></script>
+</body>
+</html> 
