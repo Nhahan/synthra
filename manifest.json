@@ -3,6 +3,7 @@
   "name": "Synthra",
   "version": "1.0.0",
   "description": "AI-powered YouTube script summarizer with free and premium features",
+  "default_locale": "en",
   "permissions": [
     "storage",
     "tabs",
@@ -38,11 +39,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "models/free_model/*.gguf",
-        "models/premium_model/*.gguf",
         "node_modules/@mlc-ai/web-llm/dist/*.wasm",
-        "node_modules/@mlc-ai/web-llm/dist/*.js",
-        "js/worker.js"
+        "node_modules/@mlc-ai/web-llm/dist/*.js"
       ],
       "matches": ["https://*.youtube.com/*"]
     }

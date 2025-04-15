@@ -4,7 +4,7 @@
   "description": "AI-powered YouTube script summarizer with free and premium features",
   "private": true,
   "scripts": {
-    "build": "echo 'No build step required'",
+    "build": "webpack --mode production",
     "test": "echo 'No tests available'",
     "deploy": "node scripts/deploy.js",
     "package": "zip -r synthra.zip . -x '*.git*' 'node_modules/*' '.DS_Store' '*.zip' '*.log' '*.gguf' '*.bin' '*.wasm'"
