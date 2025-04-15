@@ -11,25 +11,24 @@
     <header>
       <div class="header-top">
         <div class="header-left">
-          <img src="icons/icon48.png" alt="Synthra Logo" class="logo">
+          <div id="model-status-indicator" class="status-indicator loading"></div>
           <h1 data-i18n="popupHeader">Synthra</h1>
         </div>
-        <div class="language-selector">
+        <div class="header-right">
           <select id="language-select">
             <option value="ko">한국어</option>
             <option value="en">English</option>
             <option value="ja">日本語</option>
             <option value="zh">中文</option>
           </select>
+          <button id="history-button" class="icon-button">히스토리</button>
         </div>
       </div>
     </header>
 
-    <div class="main-content">
-      <div class="section status-section">
-        <h2 data-i18n="statusTitle">상태</h2>
+    <div id="status-only-view" class="status-only-view">
+      <div class="status-section">
         <div class="status-header">
-          <div id="model-status-indicator" class="status-indicator loading"></div>
           <div id="model-status-text" class="status-text" data-i18n="statusChecking">상태 확인 중...</div>
         </div>
         <p id="status-description" class="status-description" data-i18n="statusLoadingEngine">AI 엔진 상태를 불러오는 중입니다...</p>
@@ -42,16 +41,26 @@
           <span data-i18n="retrying">다시 시도 중...</span>
         </div>
       </div>
+    </div>
 
-      <div class="divider"></div>
-
-      <div class="section summary-section" id="summary-container" style="display: none;">
-        <h2 data-i18n="summaryTitle">요약 내용</h2>
+    <div id="main-content" class="main-content" style="display: none;">
+      <div class="section summary-section" id="summary-container">
+        <div class="section-header">
+          <h2 data-i18n="summaryTitle">요약 내용</h2>
+          <button id="copy-button" class="icon-button copy-button" title="복사하기">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
         <div id="summary-content" class="summary-content"></div>
         <div id="summary-loading" class="summary-loading" style="display: none;">
           <div class="summary-loading-text dot-typing" data-i18n="summaryLoading">요약 생성 중</div>
         </div>
       </div>
+
+      <div class="divider"></div>
 
       <div class="section usage-section">
         <h2 data-i18n="usageTitle">사용 방법</h2>
@@ -62,13 +71,24 @@
             <input type="checkbox" id="auto-summary-toggle">
             <span class="toggle-slider"></span>
           </label>
-          <span class="toggle-label" data-i18n="autoSummaryToggle">자동 요약</span>
+          <span class="toggle-label" data-i18n="autoSummaryToggle">요약 기능 활성화</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="history-content" class="history-content" style="display: none;">
+      <div class="section history-section">
+        <h2>저장된 요약 히스토리</h2>
+        <p class="history-desc">최근 저장된 최대 10개의 요약 내용을 볼 수 있습니다.</p>
+        
+        <div id="history-items" class="history-items">
+          <!-- 히스토리 항목들이 동적으로 채워집니다 -->
         </div>
       </div>
     </div>
 
     <footer>
-      Synthra v1.0.1 
+      Synthra v1.0.2 
     </footer>
   </div>
 
