@@ -1,7 +1,4 @@
 /// <reference lib="webworker"/>
-// Synthra - Background Service Worker
-// Uses ExtensionServiceWorkerMLCEngineHandler based on WebLLM examples
-
 import { 
     CreateExtensionServiceWorkerMLCEngine, 
     ExtensionServiceWorkerMLCEngineHandler, 
@@ -11,10 +8,7 @@ import {
 } from "@mlc-ai/web-llm";
 import { TARGET_MODEL_ID, SupportedLanguage } from './config'; // Import from config
 
-// --- Type Definitions ---
-// SupportedLanguage moved to config.ts
-
-interface TranscriptItem { // Keep for internal use if needed, though content script uses different source now
+interface TranscriptItem {
     timestamp: string;
     text: string;
 }
@@ -25,14 +19,9 @@ interface BackgroundMessage {
 }
 
 // --- Constants ---
-// TARGET_MODEL_ID moved to config.ts
-let activeEngine: MLCEngineInterface | null = null; // Track the active engine instance
+let activeEngine: MLCEngineInterface | null = null;
 let isEngineInitializing: boolean = false; // 엔진 초기화 진행 중 상태 추적
 let engineInitError: string | null = null; // 초기화 오류 저장
-
-console.log("[SW] Service Worker starting...");
-
-// --- Engine Handler Setup ---
 let handler: ExtensionServiceWorkerMLCEngineHandler | undefined;
 
 chrome.runtime.onConnect.addListener((port) => {
@@ -133,8 +122,78 @@ async function initializeEngine(): Promise<void> {
 // URL 변경에 대한 디바운싱 상수 
 const URL_DEBOUNCE_TIME = 1500; // 1.5초
 
-// 자동 요약 기능 활성화 상태 - 중복 선언 제거
-// let autoSummarize = true; // autoSummaryEnabled와 동일하게 유지
+// 전역 설정 변수
+let currentLanguage: SupportedLanguage = 'ko';
+let autoSummarize = true; // 기본값 true로 변경
+
+// 설정 로드 함수
+async function loadSettings(): Promise<void> {
+    chrome.storage.local.get(['selectedLanguage', 'autoSummarize', 'autoSummaryEnabled'], (result) => {
+        if (result.selectedLanguage) {
+            currentLanguage = result.selectedLanguage as SupportedLanguage;
+            console.log(`[SW] Loaded language setting: ${currentLanguage}`);
+        }
+        
+        // 두 개의 키 중 하나라도 true이면 자동 요약 활성화
+        const isSummaryEnabled = result.autoSummaryEnabled === true || result.autoSummarize === true;
+        autoSummarize = isSummaryEnabled;
+        
+        if (isSummaryEnabled) {
+            console.log(`[SW] Loaded auto-summarize setting: ${autoSummarize}`);
+            
+            // 항상 두 키를 동기화하여 저장
+            chrome.storage.local.set({ 
+                autoSummarize: true, 
+                autoSummaryEnabled: true 
+            });
+        } else {
+            console.log(`[SW] Auto-summarize setting initialized to ${autoSummarize}`);
+            
+            // 비활성화된 경우 강제로 활성화
+            autoSummarize = true;
+            chrome.storage.local.set({ 
+                autoSummarize: true, 
+                autoSummaryEnabled: true 
+            });
+        }
+    });
+}
+
+// 스토리지 변경 감지
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local') {
+        // 언어 설정 변경 감지
+        if (changes.selectedLanguage) {
+            currentLanguage = changes.selectedLanguage.newValue as SupportedLanguage;
+            console.log(`[SW] Language setting updated: ${currentLanguage}`);
+        }
+        
+        // 자동 요약 설정 변경 감지 - 두 개의 키 모두 확인
+        if (changes.autoSummarize || changes.autoSummaryEnabled) {
+            // 두 키 중 하나라도 true면 활성화
+            const oldAutoSummarize = changes.autoSummarize?.oldValue;
+            const newAutoSummarize = changes.autoSummarize?.newValue;
+            const oldAutoSummaryEnabled = changes.autoSummaryEnabled?.oldValue;
+            const newAutoSummaryEnabled = changes.autoSummaryEnabled?.newValue;
+            
+            // 변경사항 로깅
+            console.log(`[SW] Auto-summarize setting changed:`,
+                       `autoSummarize: ${oldAutoSummarize} -> ${newAutoSummarize}`,
+                       `autoSummaryEnabled: ${oldAutoSummaryEnabled} -> ${newAutoSummaryEnabled}`);
+                       
+            // 항상 true로 유지
+            autoSummarize = true;
+            
+            // 키 동기화를 위해 두 키 모두 true로 설정
+            chrome.storage.local.set({ 
+                autoSummarize: true, 
+                autoSummaryEnabled: true 
+            });
+            
+            console.log(`[SW] Auto-summarize setting forced to enabled`);
+        }
+    }
+});
 
 // URL 업데이트 디바운싱을 위한 맵
 // 탭 ID를 키로 하고, 타이머 ID와 타임스탬프를 값으로 가짐
@@ -150,7 +209,7 @@ const pendingUrlUpdates = new Map<number, PendingUpdate>();
 function handleYouTubeNavigation(tabId: number, url: string): void {
     // YouTube 동영상 URL인지 확인
     if (!url || !url.includes('youtube.com/watch?')) {
-        console.log(`[SW] Non-YouTube video URL: ${url}, ignoring`);
+        console.log(`[ServiceWorker] YouTube 동영상 URL이 아님: ${url}, 무시합니다`);
         return;
     }
     
@@ -159,28 +218,29 @@ function handleYouTubeNavigation(tabId: number, url: string): void {
     if (existing) {
         // 이미 처리 중인 URL과 동일한지 확인
         if (existing.url === url) {
-            console.log(`[SW] Same URL already being processed for tab ${tabId}, skipping`);
+            console.log(`[ServiceWorker] 동일한 URL이 이미 탭 ${tabId}에서 처리 중, 건너뜁니다`);
             return;
         }
         
         // 이전 타이머 취소
         clearTimeout(existing.timerId);
+        console.log(`[ServiceWorker] 탭 ${tabId}의 이전 타이머를 취소했습니다`);
     }
     
     // 새 타이머 설정
     const timerId = setTimeout(() => {
-        console.log(`[SW] URL debounce timeout triggered for tab ${tabId}`);
+        console.log(`[ServiceWorker] 탭 ${tabId}의 URL 디바운스 타임아웃 트리거됨`);
         
         // 맵에서 항목 제거
         pendingUrlUpdates.delete(tabId);
         
-        // 자동 요약 기능이 활성화된 경우 요약 트리거
-        if (autoSummarize) {
-            console.log(`[SW] Auto-summarize is enabled, triggering for tab ${tabId}`);
-            triggerAutoSummarize(tabId, url);
-        } else {
-            console.log(`[SW] Auto-summarize is disabled for tab ${tabId}`);
-        }
+        // 자동 요약 기능 항상 활성화
+        autoSummarize = true;
+        
+        // 항상 요약 트리거
+        console.log(`[ServiceWorker] 탭 ${tabId}에 대한 자동 요약을 트리거합니다`);
+        triggerAutoSummarize(tabId, url);
+        
     }, URL_DEBOUNCE_TIME);
     
     // 맵에 새 항목 추가
@@ -189,23 +249,34 @@ function handleYouTubeNavigation(tabId: number, url: string): void {
         url,
         timestamp: Date.now()
     });
+    
+    console.log(`[ServiceWorker] 탭 ${tabId}에 대한 URL 업데이트 등록됨, ${URL_DEBOUNCE_TIME}ms 후 처리 예정`);
 }
 
 // 자동 요약 트리거 함수
 async function triggerAutoSummarize(tabId: number, url: string): Promise<void> {
-    console.log(`[SW] Triggering auto-summarize for tab ${tabId} with URL: ${url}`);
+    console.log(`[ServiceWorker] 자동 요약 트리거 시작 - 탭 ${tabId}, URL: ${url}`);
+    
+    // 자동 요약 기능이 항상 활성화된 상태로 유지
+    autoSummarize = true;
+    
+    // YouTube URL이 아니면 무시
+    if (!url.includes('youtube.com/watch?')) {
+        console.log(`[ServiceWorker] YouTube 동영상 URL이 아니므로 요약 처리를 건너뜁니다.`);
+        return;
+    }
     
     // 현재 엔진 상태 확인
     const engineStatus = await getEngineStatus();
     
     if (!engineStatus.ready && !engineStatus.initializing) {
-        console.log(`[SW] Engine not ready or initializing, starting initialization`);
+        console.log(`[ServiceWorker] 엔진이 준비되지 않았고 초기화 중이 아니므로, 초기화를 시작합니다.`);
         // 엔진이 준비되지 않았으면 초기화 시작
         try {
             await initEngine();
-            console.log(`[SW] Engine initialization started successfully`);
+            console.log(`[ServiceWorker] 엔진 초기화가 성공적으로 시작되었습니다.`);
         } catch (error) {
-            console.error(`[SW] Failed to initialize engine:`, error);
+            console.error(`[ServiceWorker] 엔진 초기화 실패:`, error);
             return;
         }
     }
@@ -214,37 +285,37 @@ async function triggerAutoSummarize(tabId: number, url: string): Promise<void> {
     try {
         const tab = await chrome.tabs.get(tabId);
         if (!tab || !tab.url || !tab.url.includes('youtube.com/watch?')) {
-            console.log(`[SW] Tab ${tabId} no longer exists or is not a YouTube video`);
+            console.log(`[ServiceWorker] 탭 ${tabId}이(가) 더 이상 존재하지 않거나 YouTube 동영상이 아닙니다.`);
             return;
         }
         
         // 현재 탭의 URL이 처리하려는 URL과 일치하는지 확인
         if (tab.url !== url) {
-            console.log(`[SW] Tab URL changed since debounce started, aborting`);
-            console.log(`[SW] Original: ${url}`);
-            console.log(`[SW] Current: ${tab.url}`);
+            console.log(`[ServiceWorker] 디바운스 시작 이후 탭 URL이 변경되었습니다. 중단합니다.`);
+            console.log(`[ServiceWorker] 원본 URL: ${url}`);
+            console.log(`[ServiceWorker] 현재 URL: ${tab.url}`);
             return;
         }
         
         // 탭에 트랜스크립트 요청 메시지 전송
-        console.log(`[SW] Requesting transcript from tab ${tabId}`);
+        console.log(`[ServiceWorker] 탭 ${tabId}에서 트랜스크립트 요청 중...`);
         chrome.tabs.sendMessage(tabId, { action: 'getTranscript' }, async (response) => {
             if (chrome.runtime.lastError) {
-                console.error(`[SW] Error sending message to tab ${tabId}:`, chrome.runtime.lastError);
+                console.error(`[ServiceWorker] 탭 ${tabId}에 메시지 전송 오류:`, chrome.runtime.lastError);
                 return;
             }
             
             if (!response || !response.transcript) {
-                console.log(`[SW] No transcript received from tab ${tabId}`);
+                console.log(`[ServiceWorker] 탭 ${tabId}에서 트랜스크립트를 받지 못했습니다.`);
                 return;
             }
             
-            console.log(`[SW] Received transcript from tab ${tabId}, length: ${response.transcript.length}`);
+            console.log(`[ServiceWorker] 탭 ${tabId}에서 트랜스크립트 수신, 길이: ${response.transcript.length}`);
             
             // 엔진이 준비되었는지 재확인
             const currentStatus = await getEngineStatus();
             if (!currentStatus.ready) {
-                console.log(`[SW] Engine not ready yet, storing transcript for later processing`);
+                console.log(`[ServiceWorker] 엔진이 아직 준비되지 않았습니다. 나중에 처리하기 위해 트랜스크립트 저장 중...`);
                 // 엔진이 준비되지 않았으면 트랜스크립트 저장 후 나중에 처리
                 const title = response.title || '';
                 const transcript = response.transcript || '';
@@ -260,7 +331,7 @@ async function triggerAutoSummarize(tabId: number, url: string): Promise<void> {
             processTranscript(tabId, videoTranscript, videoUrl, videoTitle);
         });
     } catch (error) {
-        console.error(`[SW] Error checking tab ${tabId}:`, error);
+        console.error(`[ServiceWorker] 탭 ${tabId} 확인 중 오류 발생:`, error);
     }
 }
 
@@ -390,118 +461,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.url) {
         console.log(`[SW] Tab ${tabId} URL changed: ${changeInfo.url}`);
         handleYouTubeNavigation(tabId, changeInfo.url);
-    }
-});
-
-// 자동 요약 설정 및 로컬 스토리지 관련 로직 개선
-
-// 자동 요약 기능 활성화 상태 - 기본값은 반드시 true
-let autoSummarize = true; 
-let currentLanguage: string = 'ko'; // 기본 언어
-
-// 설정 로드 함수 개선
-async function loadSettings(): Promise<void> {
-    try {
-        console.log("[SW] 설정 로드 시작 - 현재 autoSummarize 상태:", autoSummarize);
-        
-        // 초기값 강제 설정 - 앱 시작 시 항상 true로 시작
-        await chrome.storage.local.set({ 
-            autoSummarize: true,
-            autoSummaryEnabled: true // 하위 호환성 유지
-        });
-        console.log("[SW] 자동 요약 기능을 강제로 활성화했습니다.");
-        autoSummarize = true;
-        
-        // 언어 설정만 로드
-        const settings = await chrome.storage.local.get(['language', 'selectedLanguage']);
-        
-        // 언어 설정 업데이트
-        if (settings.language) {
-            currentLanguage = settings.language;
-            console.log(`[SW] 언어 설정: ${currentLanguage}`);
-        } else if (settings.selectedLanguage) {
-            // 기존 형식 지원
-            currentLanguage = settings.selectedLanguage;
-            console.log(`[SW] 기존 형식의 언어 설정: ${currentLanguage}`);
-            // 새 형식으로 마이그레이션
-            chrome.storage.local.set({ language: currentLanguage });
-        }
-    } catch (error) {
-        console.error("[SW] 설정 로드 오류:", error);
-        // 오류 발생 시에도 자동 요약 기능은 활성화
-        autoSummarize = true;
-    }
-}
-
-// 메시지 핸들러 업데이트 (setAutoSummarize)
-function handleSetAutoSummarize(message: any, sendResponse: (response: any) => void): boolean {
-    const isEnabled = message.enabled === true;
-    
-    // 상태 변경 전 로깅
-    console.log(`[SW] 자동 요약 설정 변경 요청 - 현재: ${autoSummarize ? '활성화' : '비활성화'}, 요청: ${isEnabled ? '활성화' : '비활성화'}`);
-    
-    autoSummarize = isEnabled;
-    console.log(`[SW] 자동 요약 설정이 ${isEnabled ? '활성화' : '비활성화'}됨 (메시지로부터)`);
-    
-    // 설정 저장 - 단일 키 사용
-    chrome.storage.local.set({ 
-        autoSummarize: isEnabled,
-        autoSummaryEnabled: isEnabled // 하위 호환성 유지
-    }).then(() => {
-        console.log(`[SW] 자동 요약 설정이 스토리지에 저장됨: ${isEnabled ? '활성화' : '비활성화'}`);
-        sendResponse({ success: true });
-    }).catch(error => {
-        console.error("[SW] 자동 요약 설정 저장 오류:", error);
-        sendResponse({ success: false, error: String(error) });
-    });
-    
-    return true; // 비동기 응답
-}
-
-// 설정 변경 감지를 위한 리스너 업데이트
-chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local') {
-        // 언어 설정 변경 감지
-        if (changes.language) {
-            currentLanguage = changes.language.newValue;
-            console.log(`[SW] 언어 설정 변경됨: ${currentLanguage}`);
-        } else if (changes.selectedLanguage) {
-            // 이전 형식 호환성 유지
-            currentLanguage = changes.selectedLanguage.newValue;
-            console.log(`[SW] 이전 형식의 언어 설정 변경됨: ${currentLanguage}`);
-            // 새 형식으로 동기화
-            chrome.storage.local.set({ language: currentLanguage });
-        }
-        
-        // 자동 요약 설정 변경 감지
-        if (changes.autoSummarize || changes.autoSummaryEnabled) {
-            // 변경 전 상태 로깅
-            console.log(`[SW] 자동 요약 설정 변경 감지 - 변경 전: ${autoSummarize ? '활성화' : '비활성화'}`);
-            
-            // 어느 키가 변경되었는지 로깅
-            if (changes.autoSummarize) {
-                console.log(`[SW] autoSummarize 키 변경: ${changes.autoSummarize.oldValue} -> ${changes.autoSummarize.newValue}`);
-            }
-            if (changes.autoSummaryEnabled) {
-                console.log(`[SW] autoSummaryEnabled 키 변경: ${changes.autoSummaryEnabled.oldValue} -> ${changes.autoSummaryEnabled.newValue}`);
-            }
-            
-            // 가장 최근 변경된 값을 사용
-            if (changes.autoSummarize && changes.autoSummarize.newValue !== undefined) {
-                autoSummarize = changes.autoSummarize.newValue === true;
-            } else if (changes.autoSummaryEnabled && changes.autoSummaryEnabled.newValue !== undefined) {
-                autoSummarize = changes.autoSummaryEnabled.newValue === true;
-            }
-            
-            // 변경 후 상태 로깅
-            console.log(`[SW] 자동 요약 설정 변경됨: ${autoSummarize ? '활성화됨' : '비활성화됨'}`);
-            
-            // 키 동기화 (항상 동일한 값 유지)
-            chrome.storage.local.set({
-                autoSummarize: autoSummarize,
-                autoSummaryEnabled: autoSummarize
-            });
-        }
     }
 });
 
@@ -665,7 +624,6 @@ chrome.runtime.onMessage.addListener((message: BackgroundMessage, sender: chrome
                     // 엔진이 활성화된 상태인 경우
                     if (activeEngine) {
                         try {
-                            // Test the engine with a simple completion to verify it's still working
                             // 비동기 테스트의 타임아웃 추가
                             const testPromise = activeEngine.chat?.completions?.create({
                                 messages: [{ role: "user", content: "test" }],
@@ -809,6 +767,9 @@ chrome.runtime.onMessage.addListener((message: BackgroundMessage, sender: chrome
                     
                     return { success: true };
 
+                case 'setAutoSummarize':
+                    return handleSetAutoSummarize(message, sender, sendResponse);
+
                 default:
                     console.warn(`[SW] onMessage: Unhandled async action: ${action}`);
                     return { success: false, error: `Unknown action for onMessage: ${action}` };
@@ -821,7 +782,7 @@ chrome.runtime.onMessage.addListener((message: BackgroundMessage, sender: chrome
     };
 
     // Handle async actions based on type
-    if (action === 'summarizeVideo' || action === 'autoSummarySettingChanged' || action === 'checkEngineStatus') { 
+    if (action === 'summarizeVideo' || action === 'autoSummarySettingChanged' || action === 'checkEngineStatus' || action === 'setAutoSummarize') { 
         handleAsyncAction().then(sendResponse);
         return true; // Indicate async response
     } else {
@@ -962,31 +923,71 @@ async function generateSummaryInternal(engine: MLCEngineInterface, transcript: s
     }
 }
 
-// 트랜스크립트 처리 함수
+// 요약 결과 저장 함수 추가
+async function saveSummaryToStorage(videoId: string, title: string, summary: string, thumbnailUrl?: string): Promise<void> {
+    try {
+        console.log(`[SW] 요약 저장 시작 (비디오 ID: ${videoId})`);
+        
+        // 기존 히스토리 불러오기
+        const result = await chrome.storage.local.get('summaryHistories');
+        let summaryHistories: any[] = result.summaryHistories || [];
+        
+        // 같은 비디오ID의 기존 항목 제거
+        summaryHistories = summaryHistories.filter((item: any) => item.videoId !== videoId);
+        
+        // 새 항목 추가
+        const newHistory = {
+            videoId,
+            title: title || '제목 없음',
+            summary,
+            timestamp: Date.now(),
+            thumbnailUrl: thumbnailUrl || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`
+        };
+        
+        summaryHistories.unshift(newHistory);
+        
+        // 최대 개수 제한 (10개)
+        const MAX_HISTORY_COUNT = 10;
+        if (summaryHistories.length > MAX_HISTORY_COUNT) {
+            summaryHistories = summaryHistories.slice(0, MAX_HISTORY_COUNT);
+        }
+        
+        // 저장
+        await chrome.storage.local.set({ summaryHistories });
+        console.log(`[SW] 요약 저장 완료 (비디오 ID: ${videoId}), 현재 히스토리 개수: ${summaryHistories.length}`);
+    } catch (error) {
+        console.error(`[SW] 요약 저장 중 오류:`, error);
+    }
+}
+
+// 트랜스크립트 처리 함수 수정
 async function processTranscript(tabId: number, transcript: string, url: string, title: string): Promise<void> {
     try {
-        console.log(`[SW] 탭 ${tabId}의 트랜스크립트 처리 중 (URL: ${url})`);
+        console.log(`[ServiceWorker] 탭 ${tabId}의 트랜스크립트 처리 중 (URL: ${url})`);
+        
+        // 자동 요약 기능이 항상 활성화됨
+        autoSummarize = true;
         
         // 활성 엔진 준비 상태 확인
         if (!activeEngine) {
-            console.error(`[SW] 탭 ${tabId}: 활성 엔진이 준비되지 않았습니다`);
+            console.error(`[ServiceWorker] 탭 ${tabId}: 활성 엔진이 준비되지 않았습니다`);
             chrome.runtime.sendMessage({
                 type: "summarize_error", 
                 error: "엔진이 준비되지 않았습니다. 다시 시도해 주세요."
             }).catch(err => {
-                console.log("[SW] No active popups to notify about error");
+                console.log("[ServiceWorker] 오류를 알릴 활성 팝업이 없습니다");
             });
             return;
         }
         
         // 트랜스크립트 유효성 검사
         if (!transcript || transcript.trim() === '') {
-            console.error(`[SW] 탭 ${tabId}: 비어있는 트랜스크립트`);
+            console.error(`[ServiceWorker] 탭 ${tabId}: 비어있는 트랜스크립트`);
             chrome.runtime.sendMessage({
                 type: "summarize_error", 
                 error: "트랜스크립트가 비어 있습니다. 비디오에 자막이 있는지 확인해 주세요."
             }).catch(err => {
-                console.log("[SW] No active popups to notify about error");
+                console.log("[ServiceWorker] 오류를 알릴 활성 팝업이 없습니다");
             });
             return;
         }
@@ -994,17 +995,17 @@ async function processTranscript(tabId: number, transcript: string, url: string,
         // 비디오 ID 추출
         const videoId = extractVideoId(url);
         if (!videoId) {
-            console.error(`[SW] 탭 ${tabId}: 유효하지 않은 YouTube URL (${url})`);
+            console.error(`[ServiceWorker] 탭 ${tabId}: 유효하지 않은 YouTube URL (${url})`);
             chrome.runtime.sendMessage({
                 type: "summarize_error", 
                 error: "유효한 YouTube 비디오 URL이 아닙니다."
             }).catch(err => {
-                console.log("[SW] No active popups to notify about error");
+                console.log("[ServiceWorker] 오류를 알릴 활성 팝업이 없습니다");
             });
             return;
         }
         
-        console.log(`[SW] 탭 ${tabId}: 비디오 ID ${videoId}, 제목 "${title || '제목 없음'}" 요약 생성 중...`);
+        console.log(`[ServiceWorker] 탭 ${tabId}: 비디오 ID ${videoId}, 제목 "${title || '제목 없음'}" 요약 생성 중...`);
         
         chrome.runtime.sendMessage({ 
             type: "summarize_start", 
@@ -1012,7 +1013,8 @@ async function processTranscript(tabId: number, transcript: string, url: string,
             videoId: videoId,
             title: title || '제목 없음'
         }).catch(err => {
-            console.log("[SW] No active popups to notify about start");
+            // 팝업이 닫혔을 수 있으므로 오류 무시
+            console.log("[ServiceWorker] 시작을 알릴 활성 팝업이 없습니다. 백그라운드에서 계속 진행합니다");
         });
         
         // 요약 생성 시작 시간 기록
@@ -1028,36 +1030,57 @@ async function processTranscript(tabId: number, transcript: string, url: string,
         
         // 소요 시간 계산
         const durationSecs = ((Date.now() - startTime) / 1000).toFixed(2);
-        console.log(`[SW] 탭 ${tabId}: 요약 생성 완료 (소요 시간: ${durationSecs}초)`);
+        console.log(`[ServiceWorker] 탭 ${tabId}: 요약 생성 완료 (소요 시간: ${durationSecs}초)`);
+        
+        // 요약 결과에서 접두사 제거
+        let cleanSummary = summary;
+        const prefixesToRemove = [
+            "다음 유튜브 영상 대본의 내용을 3-5개의 중요 포인트로 요약해줍니다.",
+            "다음 유튜브 영상 대본의 내용을 3-5개의 중요 포인트로 요약해줘.",
+            "다음 유튜브 영상 대본의 내용을 3~5개의 중요 포인트로 요약해줍니다.",
+            "다음 유튜브 영상 대본의 내용을 요약하면:",
+            "요약:",
+        ];
+        
+        // 접두사 제거
+        for (const prefix of prefixesToRemove) {
+            if (cleanSummary.startsWith(prefix)) {
+                cleanSummary = cleanSummary.substring(prefix.length).trim();
+                break;
+            }
+        }
+        
+        // 요약 결과 저장
+        await saveSummaryToStorage(videoId, title, cleanSummary);
         
         // 요약 결과 전송
         const summaryResult = {
             type: "summarize_result",
-            summary: summary,
+            summary: cleanSummary,
             videoId: videoId,
             title: title || "제목 없음",
             timestamp: Date.now()
         };
         
-        // 팝업으로 요약 결과 전송
+        // 팝업으로 요약 결과 전송 - 팝업이 닫혔을 가능성이 있으므로 오류 무시
         chrome.runtime.sendMessage(summaryResult).catch(err => {
-            console.log("[SW] No active popups to notify about result");
+            console.log("[ServiceWorker] 결과를 알릴 활성 팝업이 없습니다. 이미 스토리지에 저장되었습니다");
         });
         
         // 컨텐츠 스크립트로 요약 결과 전송
         chrome.tabs.sendMessage(tabId, summaryResult).catch(error => {
-            console.warn(`[SW] 탭 ${tabId}에 메시지 전송 실패:`, error);
+            console.warn(`[ServiceWorker] 탭 ${tabId}에 메시지 전송 실패:`, error);
         });
         
     } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`[SW] 탭 ${tabId} 트랜스크립트 처리 중 오류 발생:`, error);
+        console.error(`[ServiceWorker] 탭 ${tabId} 트랜스크립트 처리 중 오류 발생:`, error);
         
         chrome.runtime.sendMessage({ 
             type: "summarize_error", 
             error: `요약 생성 실패: ${errorMessage}`
         }).catch(err => {
-            console.log("[SW] No active popups to notify about error");
+            console.log("[ServiceWorker] 오류를 알릴 활성 팝업이 없습니다");
         });
     }
 }
@@ -1106,46 +1129,77 @@ function extractVideoId(url: string): string | null {
 
 // 엔진 초기화 완료 후 자동으로 보류 중인 요약 처리
 async function notifyPopupsEngineReady(): Promise<void> {
-    console.log("[SW] Notifying all popup instances that engine is ready");
+    console.log("[ServiceWorker] 엔진 준비 완료 상태를 모든 팝업에 알림");
     
     // 모든 extension 창에 메시지 전송
     chrome.runtime.sendMessage({
         action: 'engineReady'
     }).catch(err => {
         // 오류 무시 - 활성 팝업이 없는 경우일 수 있음
-        console.log("[SW] No active popups to notify about engine ready status");
+        console.log("[ServiceWorker] 엔진 준비 상태를 알릴 활성 팝업이 없습니다");
     });
     
+    // 자동 요약 기능 항상 활성화
+    autoSummarize = true;
+    
     // 엔진이 초기화되었으므로 보류 중인 모든 YouTube 탭에서 자동 요약 시작
-    console.log("[SW] Engine is now ready, checking for pending YouTube tabs");
+    console.log("[ServiceWorker] 엔진이 준비되었습니다. 현재 열려있는 YouTube 탭 확인 중...");
     try {
         const tabs = await chrome.tabs.query({url: "*://*.youtube.com/watch?*"});
-        console.log(`[SW] Found ${tabs.length} YouTube video tabs`);
+        console.log(`[ServiceWorker] ${tabs.length}개의 YouTube 동영상 탭 발견`);
         
         for (const tab of tabs) {
-            // 자동 요약 설정이 활성화된 경우에만 처리
-            if (tab.id && tab.url && autoSummarize) {
-                console.log(`[SW] Processing YouTube tab ${tab.id}: ${tab.url}`);
+            if (tab.id && tab.url) {
+                console.log(`[ServiceWorker] YouTube 탭 ${tab.id} 처리 중: ${tab.url}`);
                 handleYouTubeNavigation(tab.id, tab.url);
             }
         }
     } catch (error) {
-        console.error("[SW] Error finding YouTube tabs:", error);
+        console.error("[ServiceWorker] YouTube 탭 검색 중 오류 발생:", error);
     }
 }
 
-// 기존 코드에 메시지 리스너 업데이트 추가
-chrome.runtime.onMessage.addListener((message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
-    // 자동 요약 설정 변경 처리
-    if (message && message.action === 'setAutoSummarize') {
-        return handleSetAutoSummarize(message, sendResponse);
+// setAutoSummarize 메시지 핸들러
+function handleSetAutoSummarize(message: any, sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void): void {
+    // 항상 활성화된 상태로 유지
+    autoSummarize = true;
+    
+    // 설정 저장 - 두 키 모두 저장
+    chrome.storage.local.set({ 
+        autoSummarize: true,
+        autoSummaryEnabled: true
+    });
+    
+    // 언어도 함께 업데이트 (제공된 경우)
+    if (message.language) {
+        currentLanguage = message.language as SupportedLanguage;
     }
     
-    // 다른 메시지는 다른 리스너에서 처리
-    return false;
-});
+    console.log(`[SW] Auto-summarize maintained as enabled`);
+    
+    // tabId가 제공된 경우, 해당 탭에 대해 자동 요약 수행
+    if (message.tabId) {
+        chrome.tabs.get(message.tabId, (tab) => {
+            if (chrome.runtime.lastError) {
+                console.error(`[SW] Error getting tab ${message.tabId}:`, chrome.runtime.lastError);
+                sendResponse({ success: false, error: chrome.runtime.lastError.message });
+                return;
+            }
+            
+            if (tab.url && tab.url.includes('youtube.com/watch?')) {
+                console.log(`[SW] Triggering auto-summarize for tab ${message.tabId}`);
+                triggerAutoSummarize(message.tabId, tab.url);
+                sendResponse({ success: true, triggered: true });
+            } else {
+                console.log(`[SW] Tab ${message.tabId} is not a YouTube video, not triggering`);
+                sendResponse({ success: true, triggered: false });
+            }
+        });
+        return;
+    }
+    
+    sendResponse({ success: true });
+}
 
-// 초기 설정 로드
-loadSettings().catch(error => {
-    console.error("[SW] 초기 설정 로드 오류:", error);
-}); 
+// 초기화 시 설정 로드
+loadSettings(); 
