@@ -1,7 +1,3 @@
-// ts/config.ts
-
-// Shared configuration values for the Synthra extension
-
 /**
  * The target MLC-Chat model ID to be used by both background and popup scripts.
  * Ensure this matches a model compatible with the WebLLM library being used.

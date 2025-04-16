@@ -1,12 +1,5 @@
-// Synthra - YouTube Transcript Extractor and Summarizer
-// This script extracts transcript data using youtube-transcript library and responds to background script requests.
-
 import { YoutubeTranscript, TranscriptResponse } from 'youtube-transcript';
 
-// --- Type Definitions ---
-// TranscriptItem is no longer needed here as we use TranscriptResponse from the library
-
-// Extend the Window interface to include custom property
 declare global {
     interface Window {
         synthraInitialized?: boolean;
@@ -14,7 +7,6 @@ declare global {
     }
 }
 
-// --- Global variables (with types) ---
 let currentVideoId: string | null = null;
 let isAutoSummaryEnabled: boolean = false;
 let currentLanguage: string = 'ko';
