@@ -109,6 +109,8 @@ async function initPopup(): Promise<void> {
 
     if (autoSummarizeToggle) {
         autoSummarizeToggle.checked = true; // 항상 활성화 상태로 UI 설정
+        // 토글 상태 변경 불가능하게 설정 (선택적)
+        // autoSummarizeToggle.disabled = true;
         autoSummarizeToggle.addEventListener('change', handleAutoSummaryToggle);
     }
     
@@ -791,15 +793,8 @@ function updateDynamicSummaryText(): void {
 let summaryStatus: 'idle' | 'loading' | 'success' | 'error' | 'not_applicable' = 'idle'; // Add state variable
 
 async function requestSummaryIfApplicable(): Promise<void> {
-    // 자동 요약이 꺼져 있으면 요약을 표시하지 않음
-    if (!autoSummarize) {
-        console.log("[Popup] Auto summary disabled, skipping summary request");
-        const summaryContainer = document.getElementById('summary-container');
-        if (summaryContainer) {
-            summaryContainer.style.display = 'none';
-        }
-        return;
-    }
+    // 항상 자동 요약 기능 활성화
+    console.log("[Popup] 자동 요약 기능 활성화 상태로 요약 시작");
 
     try {
         // Get active tab and check for YouTube URL
@@ -879,66 +874,51 @@ async function requestSummaryIfApplicable(): Promise<void> {
     }
 }
 
-function displaySummary(status: 'loading' | 'success' | 'error' | 'not_applicable', content: string = ""): void {
-    const summaryContainer = document.getElementById('summary-container');
-    const summaryContent = document.getElementById('summary-content');
-    const summaryLoading = document.getElementById('summary-loading');
+// 요약 결과 표시 함수 수정
+function displaySummary(status: 'loading' | 'success' | 'error' | 'not_applicable', summary?: string): void {
+    const loadingSection = document.getElementById('loading-section')!;
+    const summaryContainer = document.getElementById('summary-container')!;
+    const summaryContent = document.getElementById('summary-content')!;
+    const errorText = document.getElementById('error-text')!;
+    const historySection = document.getElementById('history-section')!;
 
-    if (!summaryContainer || !summaryContent) {
-        console.error("[Popup] Summary UI elements not found.");
-        return;
-    }
+    summaryStatus = status === 'not_applicable' ? 'not_applicable' : 
+                   status === 'loading' ? 'loading' : 
+                   status === 'error' ? 'error' : 'success';
 
-    summaryStatus = status; // Update the status state
-    summaryContainer.style.display = "block";
-    
-    // Hide loading animation by default
-    if (summaryLoading) {
-        summaryLoading.style.display = 'none';
+    if (status === 'loading') {
+        loadingSection.classList.remove('hidden');
+        summaryContainer.classList.add('hidden');
+        errorText.classList.add('hidden');
+        historySection.classList.add('hidden');
+    } else if (status === 'success' && summary) {
+        loadingSection.classList.add('hidden');
+        summaryContainer.classList.remove('hidden');
+        errorText.classList.add('hidden');
+        historySection.classList.add('hidden');
+        
+        // 요약 결과에서 접두사 제거
+        const cleanedSummary = cleanSummaryText(summary);
+        summaryContent.textContent = cleanedSummary;
+        
+        // 성공적으로 요약이 표시되면 자동 저장
+        saveSummary();
+    } else if (status === 'error') {
+        loadingSection.classList.add('hidden');
+        summaryContainer.classList.add('hidden');
+        errorText.classList.remove('hidden');
+        historySection.classList.add('hidden');
+        
+        errorText.textContent = summary || '요약 중 오류가 발생했습니다.';
+    } else if (status === 'not_applicable') {
+        loadingSection.classList.add('hidden');
+        summaryContainer.classList.add('hidden');
+        errorText.classList.add('hidden');
+        historySection.classList.remove('hidden');
+        
+        // 히스토리 보기로 표시 (자동)
+        renderHistoryItems();
     }
-
-    switch (status) {
-        case "loading":
-            // Show loading animation
-            summaryContent.textContent = '';
-            if (summaryLoading) {
-                summaryLoading.style.display = "flex";
-            }
-            break;
-        case "success":
-            // 로딩 숨기고 내용을 바로 표시 (애니메이션 없이)
-            if (summaryLoading) {
-                summaryLoading.style.display = "none";
-            }
-            
-            // 내용을 바로 표시
-            summaryContent.innerHTML = ''; // 기존 내용 삭제
-            summaryContent.textContent = content; // 텍스트로 내용 설정 (HTML 태그 없이)
-            
-            // 성공적으로 요약이 생성되면 자동 저장
-            saveSummary(true);
-            break;
-        case "error":
-            currentError = content; // Store the error detail
-            if (summaryLoading) {
-                summaryLoading.style.display = "none";
-            }
-            summaryContent.textContent = `${chrome.i18n.getMessage("summaryErrorPrefix") || "Error"}: ${content}`;
-            break;
-        case "not_applicable":
-            currentError = null; // Clear error when not applicable
-            if (summaryLoading) {
-                summaryLoading.style.display = "none";
-            }
-            summaryContent.textContent = chrome.i18n.getMessage("summaryNotApplicable") || "Must be on a YouTube video page.";
-            break;
-        default:
-            summaryContainer.style.display = "none";
-            break;
-    }
-    
-    // Update texts after changing content
-    updateDynamicStatusText(); // Ensure main status text is also up-to-date
 }
 
 // New function to handle transcript request with retries
@@ -1036,15 +1016,44 @@ async function requestTranscriptAndSummarize(tabId?: number): Promise<void> {
 function getPromptForLanguage(language: SupportedLanguage): string {
     switch (language) {
         case 'en':
-            return "Summarize the following YouTube video transcript into 3-5 key points. Please respond in English only:";
+            return "Summarize the following YouTube video transcript into 3-5 key points:";
         case 'ja':
-            return "次のYouTubeビデオのトランスクリプトを3〜5つの重要なポイントに要約してください。必ず日本語で答えてください:";
+            return "次のYouTubeビデオのトランスクリプトを3〜5つの重要なポイントに要約してください:";
         case 'zh':
-            return "请将以下YouTube视频的文字记录总结为3-5个关键要点。请务必用中文回答:";
+            return "请将以下YouTube视频的文字记录总结为3-5个关键要点:";
         case 'ko':
         default:
-            return "다음 유튜브 영상 대본의 내용을 3-5개의 중요 포인트로 요약해줘. 반드시 한국어로 답변해주세요:";
+            return "다음 유튜브 영상 대본의 내용을 3-5개의 중요 포인트로 요약해줘:";
     }
+}
+
+// 표시되는 요약에서 접두사 제거
+function cleanSummaryText(summary: string): string {
+    // 접두사 패턴 목록
+    const prefixPatterns = [
+        /^다음 유튜브 영상 대본의 내용을 3~5개의 중요 포인트로 요약해줍니다:?\s*/i,
+        /^다음 유튜브 영상 대본의 내용을 요약해줍니다:?\s*/i,
+        /^다음 영상의 주요 내용을 요약하면:?\s*/i,
+        /^다음 유튜브 비디오의 내용을 요약하면:?\s*/i,
+        /^유튜브 영상의 주요 내용은 다음과 같습니다:?\s*/i,
+        /^영상의 주요 내용:?\s*/i,
+        /^이 유튜브 영상의 요약:?\s*/i,
+        /^Here is a summary of the YouTube video:?\s*/i,
+        /^The main points of the video are:?\s*/i,
+        /^Summary of the transcript:?\s*/i
+    ];
+    
+    let cleanedText = summary;
+    
+    // 각 패턴에 대해 검사하고 제거
+    for (const pattern of prefixPatterns) {
+        if (pattern.test(cleanedText)) {
+            cleanedText = cleanedText.replace(pattern, '');
+            break; // 하나의 패턴만 제거
+        }
+    }
+    
+    return cleanedText.trim();
 }
 
 // 트랜스크립트를 청크로 분할하는 함수 
@@ -1305,68 +1314,58 @@ function toggleHistoryView(): void {
 }
 
 // 현재 요약 저장 함수
-async function saveSummary(skipUIUpdate: boolean = false): Promise<void> {
-    try {
-        const summaryContent = document.getElementById('summary-content');
-        if (!summaryContent || !summaryContent.textContent || summaryContent.textContent.trim() === '') {
-            console.log("[Popup] 저장할 요약 내용이 없습니다.");
+function saveSummary(): void {
+    const summaryContentElement = document.getElementById('summary-content');
+    const summaryText = summaryContentElement?.textContent || '';
+    
+    if (!summaryText.trim()) {
+        console.log('요약 내용이 없어 저장하지 않습니다.');
+        return;
+    }
+
+    // 비디오 ID, 제목 및 썸네일 URL 가져오기
+    chrome.runtime.sendMessage({ action: 'getCurrentYouTubeInfo' }, (response) => {
+        if (!response || !response.videoId) {
+            console.error('YouTube 비디오 정보를 가져올 수 없습니다.');
             return;
         }
-        
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        const activeTab = tabs[0];
-        if (!activeTab?.url?.includes("youtube.com/watch")) {
-            console.log("[Popup] YouTube 영상 페이지가 아닙니다.");
-            return;
-        }
-        
-        const url = new URL(activeTab.url);
-        const videoId = url.searchParams.get('v');
-        if (!videoId) {
-            console.log("[Popup] 비디오 ID를 찾을 수 없습니다.");
-            return;
-        }
-        
-        // 새로운 히스토리 항목 생성
-        const newHistory: SummaryHistory = {
+
+        const { videoId, title, thumbnailUrl } = response;
+        console.log(`비디오 저장: ${videoId}, ${title}`);
+
+        // 새 요약 항목 생성
+        const newSummary: SummaryHistory = {
             videoId,
-            title: activeTab.title?.replace(' - YouTube', '') || '제목 없음',
-            summary: summaryContent.textContent.trim(),
-            timestamp: Date.now(),
-            thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`
+            title: title || `YouTube 비디오 (${videoId})`,
+            summary: cleanSummaryText(summaryText),
+            timestamp: Date.now()
         };
         
-        // 같은 비디오에 대한 기존 항목 제거
-        summaryHistories = summaryHistories.filter(item => item.videoId !== videoId);
-        
-        // 새 항목 추가
-        summaryHistories.unshift(newHistory);
-        
-        // 최대 개수 제한
-        if (summaryHistories.length > MAX_HISTORY_COUNT) {
-            summaryHistories = summaryHistories.slice(0, MAX_HISTORY_COUNT);
+        if (thumbnailUrl) {
+            newSummary.thumbnailUrl = thumbnailUrl;
         }
-        
-        // 저장
-        await chrome.storage.local.set({ summaryHistories });
-        
-        // 저장 완료 메시지 표시 (UI 업데이트 스킵 옵션)
-        if (!skipUIUpdate) {
-            const copyButton = document.getElementById('copy-button');
-            if (copyButton) {
-                const originalClassName = copyButton.className;
-                copyButton.classList.add('copied');
-                
-                setTimeout(() => {
-                    copyButton.className = originalClassName;
-                }, 2000);
+
+        // 이미 같은 videoId가 있는지 확인
+        const existingIndex = summaryHistories.findIndex(item => item.videoId === videoId);
+        if (existingIndex !== -1) {
+            // 기존 항목 업데이트
+            summaryHistories[existingIndex] = newSummary;
+        } else {
+            // 새 항목 추가
+            summaryHistories.unshift(newSummary);
+            
+            // 최대 개수 유지
+            if (summaryHistories.length > MAX_HISTORY_COUNT) {
+                summaryHistories.pop();
             }
         }
-        
-        console.log("[Popup] 요약이 자동 저장되었습니다.");
-    } catch (error) {
-        console.error("[Popup] 요약 저장 중 오류:", error);
-    }
+
+        // 로컬 스토리지에 저장
+        chrome.storage.local.set({ summaryHistories }, () => {
+            console.log('요약이 저장되었습니다.');
+            renderHistoryItems();
+        });
+    });
 }
 
 // 저장된 히스토리 불러오기
@@ -1384,52 +1383,96 @@ async function loadSummaryHistories(): Promise<void> {
     }
 }
 
-// 히스토리 항목 렌더링
+// 요약 히스토리를 게시판 형태로 렌더링 (완전 개선)
 function renderHistoryItems(): void {
-    const historyContainer = document.getElementById('history-items');
-    if (!historyContainer) return;
-    
+    const historyContainer = document.getElementById('history-container')!;
     historyContainer.innerHTML = '';
-    
+
     if (summaryHistories.length === 0) {
-        const emptyMessage = document.createElement('div');
-        emptyMessage.className = 'empty-history';
-        emptyMessage.textContent = '저장된 요약이 없습니다.';
-        historyContainer.appendChild(emptyMessage);
+        historyContainer.innerHTML = '<p class="empty-history">저장된 요약이 없습니다.</p>';
         return;
     }
+
+    // 테이블 생성
+    const table = document.createElement('table');
+    table.className = 'history-table';
+    
+    // 테이블 헤더
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+        <tr>
+            <th>제목</th>
+            <th>날짜</th>
+            <th>작업</th>
+        </tr>
+    `;
+    table.appendChild(thead);
+    
+    // 테이블 바디
+    const tbody = document.createElement('tbody');
     
     summaryHistories.forEach((history, index) => {
-        const historyItem = document.createElement('div');
-        historyItem.className = 'history-item';
+        const row = document.createElement('tr');
+        row.className = 'history-item';
+        row.dataset.index = index.toString();
         
+        // 날짜 형식화
         const date = new Date(history.timestamp);
         const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
         
-        historyItem.innerHTML = `
-            <div class="history-header">
-                <div class="history-thumbnail">
-                    <img src="${history.thumbnailUrl || ''}" alt="${history.title}" />
-                </div>
-                <div class="history-info">
-                    <h3 class="history-title">${history.title}</h3>
-                    <span class="history-date">${formattedDate}</span>
-                </div>
-            </div>
-            <div class="history-summary">${history.summary}</div>
-            <div class="history-actions">
-                <button class="delete-history" data-index="${index}">삭제</button>
-                <a href="https://www.youtube.com/watch?v=${history.videoId}" target="_blank" class="view-video">영상 보기</a>
-            </div>
+        row.innerHTML = `
+            <td class="history-title">${history.title}</td>
+            <td class="history-date">${formattedDate}</td>
+            <td class="history-actions">
+                <button class="view-button">보기</button>
+                <button class="delete-button">삭제</button>
+            </td>
         `;
         
-        historyContainer.appendChild(historyItem);
+        tbody.appendChild(row);
+        
+        // 상세 내용을 표시할 행 추가
+        const detailRow = document.createElement('tr');
+        detailRow.className = 'history-detail hidden';
+        detailRow.innerHTML = `
+            <td colspan="3">
+                <div class="detail-content">
+                    <p>${history.summary}</p>
+                    ${history.thumbnailUrl ? `<img src="${history.thumbnailUrl}" alt="썸네일" class="thumbnail">` : ''}
+                    <a href="https://www.youtube.com/watch?v=${history.videoId}" target="_blank" class="video-link">
+                        YouTube에서 보기
+                    </a>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(detailRow);
     });
     
-    // 삭제 버튼에 이벤트 리스너 추가
-    document.querySelectorAll('.delete-history').forEach(button => {
+    table.appendChild(tbody);
+    historyContainer.appendChild(table);
+    
+    // 보기 버튼 이벤트 리스너
+    document.querySelectorAll('.view-button').forEach(button => {
         button.addEventListener('click', (e) => {
-            const index = parseInt((e.target as HTMLElement).dataset.index || '0');
+            const row = (e.target as HTMLElement).closest('.history-item') as HTMLElement;
+            const index = parseInt(row.dataset.index || '0');
+            const detailRow = row.nextElementSibling as HTMLElement;
+            
+            // 토글
+            if (detailRow.classList.contains('hidden')) {
+                detailRow.classList.remove('hidden');
+            } else {
+                detailRow.classList.add('hidden');
+            }
+        });
+    });
+    
+    // 삭제 버튼 이벤트 리스너
+    document.querySelectorAll('.delete-button').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const row = (e.target as HTMLElement).closest('.history-item') as HTMLElement;
+            const index = parseInt(row.dataset.index || '0');
+            
             deleteHistoryItem(index);
         });
     });
@@ -1485,14 +1528,17 @@ function initAutoSummarizeToggle() {
     const autoSummarizeToggle = document.getElementById('autoSummarizeToggle') as HTMLInputElement;
     if (!autoSummarizeToggle) return;
 
-    // 저장된 설정 가져오기 (두 키 모두 확인)
-    chrome.storage.local.get(['autoSummarize', 'autoSummaryEnabled'], (result) => {
-        // 두 설정 중 하나라도 true면 활성화
-        const isEnabled = result.autoSummarize === true || result.autoSummaryEnabled === true;
-        autoSummarize = isEnabled; // 로컬 변수 업데이트
-        autoSummarizeToggle.checked = isEnabled;
-        console.log(`[Popup] Loaded auto-summarize setting: ${isEnabled}`);
+    // 항상 활성화 상태로 설정
+    autoSummarize = true;
+    autoSummarizeToggle.checked = true;
+    
+    // 설정 저장 (항상 true)
+    chrome.storage.local.set({ 
+        autoSummarize: true, 
+        autoSummaryEnabled: true 
     });
+    
+    console.log(`[Popup] 자동 요약 기능 강제 활성화됨`);
 
     // 토글 변경 이벤트 처리
     autoSummarizeToggle.addEventListener('change', handleAutoSummaryToggle);
@@ -1504,22 +1550,32 @@ function initAutoSummarizeToggle() {
 function setupStorageListener() {
     chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'local') {
-            // 자동 요약 설정 변경 감지
-            if (changes.autoSummarize) {
-                console.log(`[Popup] Storage 변경 감지: autoSummarize ${changes.autoSummarize.oldValue} -> ${changes.autoSummarize.newValue}`);
+            // 자동 요약 설정 변경 감지 - 항상 활성화 유지
+            if (changes.autoSummarize || changes.autoSummaryEnabled) {
+                console.log(`[Popup] Storage 변경 감지: 자동 요약 설정`);
                 
                 const autoSummarizeToggle = document.getElementById('autoSummarizeToggle') as HTMLInputElement;
-                const newValue = changes.autoSummarize.newValue === true;
                 
-                // 로컬 변수와 UI 모두 업데이트
-                autoSummarize = newValue;
+                // 로컬 변수와 UI 모두 활성화 상태 유지
+                autoSummarize = true;
                 
                 if (autoSummarizeToggle) {
-                    autoSummarizeToggle.checked = newValue;
-                    console.log(`[Popup] 토글 상태 업데이트: ${newValue ? '활성화됨' : '비활성화됨'}`);
+                    autoSummarizeToggle.checked = true;
+                    console.log(`[Popup] 토글 상태 유지: 항상 활성화됨`);
                 }
                 
-                console.log(`[Popup] 자동 요약 설정이 스토리지에서 업데이트됨: ${newValue ? '활성화됨' : '비활성화됨'}`);
+                // 설정이 false로 변경되었다면 다시 true로 복구
+                const newAutoSummarize = changes.autoSummarize?.newValue;
+                const newAutoSummaryEnabled = changes.autoSummaryEnabled?.newValue;
+                
+                if (newAutoSummarize === false || newAutoSummaryEnabled === false) {
+                    // 다시 true로 설정
+                    chrome.storage.local.set({
+                        autoSummarize: true,
+                        autoSummaryEnabled: true
+                    });
+                    console.log(`[Popup] 자동 요약 설정 강제 복구: 활성화됨`);
+                }
             }
             
             // 언어 설정 변경 감지
@@ -1540,21 +1596,20 @@ function setupStorageListener() {
 // --- Auto Summary Toggle Handling --- 개선
 async function handleAutoSummaryToggle(event: Event): Promise<void> {
     const toggleElement = event.target as HTMLInputElement;
-    const newValue = toggleElement.checked;
     
-    console.log(`[Popup] 토글 이벤트 발생 - 이전: ${autoSummarize ? '활성화됨' : '비활성화됨'}, 새값: ${newValue ? '활성화됨' : '비활성화됨'}`);
+    // 항상 활성화 상태로 유지 (이벤트가 발생해도 체크 상태 유지)
+    toggleElement.checked = true;
+    autoSummarize = true;
     
-    // 로컬 상태 업데이트
-    autoSummarize = newValue;
-    console.log(`[Popup] 자동 요약 기능 ${autoSummarize ? '활성화됨' : '비활성화됨'}`);
+    console.log(`[Popup] 자동 요약 기능 강제 활성화 상태 유지`);
     
-    // 설정 저장 - 하나의 키만 사용
+    // 설정 저장 - 항상 true로 설정
     try {
         await chrome.storage.local.set({ 
-            autoSummarize: newValue,
-            autoSummaryEnabled: newValue // 하위 호환성 유지
+            autoSummarize: true,
+            autoSummaryEnabled: true // 하위 호환성 유지
         });
-        console.log(`[Popup] 스토리지에 설정 저장 완료: ${newValue ? '활성화됨' : '비활성화됨'}`);
+        console.log(`[Popup] 스토리지에 설정 저장 완료: 항상 활성화됨`);
     } catch (error) {
         console.error(`[Popup] 설정 저장 오류:`, error);
     }
@@ -1568,10 +1623,10 @@ async function handleAutoSummaryToggle(event: Event): Promise<void> {
         
         console.log(`[Popup] 백그라운드에 설정 변경 알림 전송 시작`);
         
-        // 백그라운드에 설정 변경 알림 전송
+        // 백그라운드에 설정 변경 알림 전송 - 항상 enabled=true로 설정
         chrome.runtime.sendMessage({
             action: 'setAutoSummarize',
-            enabled: newValue,
+            enabled: true,
             tabId: activeTab?.id,
             language: currentLanguage
         }, (response) => {
@@ -1584,15 +1639,9 @@ async function handleAutoSummaryToggle(event: Event): Promise<void> {
         
         console.log(`[Popup] 백그라운드에 설정 변경 알림 전송 완료`);
         
-        // 토글이 켜져 있고 엔진이 준비되어 있다면 즉시 요약 처리
-        if (newValue && engine && !isLoading && !currentError) {
+        // 엔진이 준비되어 있다면 즉시 요약 처리
+        if (engine && !isLoading && !currentError) {
             requestSummaryIfApplicable();
-        } else if (!newValue) {
-            // 자동 요약이 꺼진 경우, 요약 섹션 숨기기
-            const summaryContainer = document.getElementById('summary-container');
-            if (summaryContainer) {
-                summaryContainer.style.display = 'none';
-            }
         }
     } catch (error) {
         console.error("[Popup] 자동 요약 설정 변경 알림 오류:", error);
